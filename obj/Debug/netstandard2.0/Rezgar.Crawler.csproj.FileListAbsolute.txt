@@ -1,0 +1,12 @@
+d:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\obj\Debug\netstandard2.0\Rezgar.Crawler.csproj.CoreCompileInputs.cache
+d:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\obj\Debug\netstandard2.0\Rezgar.Crawler.AssemblyInfoInputs.cache
+d:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\obj\Debug\netstandard2.0\Rezgar.Crawler.AssemblyInfo.cs
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\obj\Debug\netstandard2.0\Rezgar.Crawler.csprojResolveAssemblyReference.cache
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\bin\Debug\netstandard2.0\Rezgar.Crawler.dll.config
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\bin\Debug\netstandard2.0\Rezgar.Crawler.deps.json
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\bin\Debug\netstandard2.0\Rezgar.Crawler.dll
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\bin\Debug\netstandard2.0\Rezgar.Crawler.pdb
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\bin\Debug\netstandard2.0\Rezgar.Utils.dll
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\bin\Debug\netstandard2.0\Rezgar.Utils.pdb
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\obj\Debug\netstandard2.0\Rezgar.Crawler.dll
+D:\Projects\Rezgar\Agur\backend\Rezgar.SharedProjects\Rezgar.Crawler\obj\Debug\netstandard2.0\Rezgar.Crawler.pdb
