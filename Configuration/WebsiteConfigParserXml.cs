@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -45,7 +46,11 @@ namespace Rezgar.Crawler.Configuration
                         config.CrawlingSettings = ReadWebsiteCrawlingSettingsSection(reader);
                         break;
 
-                    case "items":
+                    case "global":
+                        config.GlobalItems = ReadGlobalItemsSection(reader);
+                        break;
+
+                    case "data":
                         config.ExtractionItems = ReadExtractionItemsSection(reader);
                         break;
 
@@ -331,14 +336,12 @@ namespace Rezgar.Crawler.Configuration
                                         extractedItems.AddValue(extractionItem.Name, extractionItem.Value);
                                     }
 
-                                    var extractedLink = new DocumentLink(
-                                            extractionLink.Value,
-                                            extractionLink.HttpMethod,
-                                            websiteJob,
-                                            extractionLink.ExtractLinks,
-                                            extractionLink.ExtractData,
-                                            extractedItems
-                                        );
+                                    var extractedLink = new AutoDetectLink(
+                                        extractionLink.Value,
+                                        websiteJob,
+                                        extractionLink,
+                                        extractedItems
+                                    );
 
                                     websiteJob.EntryCrawlingQueueItems.Add(new CrawlingQueueItem(extractedLink));
                                 }
@@ -375,15 +378,18 @@ namespace Rezgar.Crawler.Configuration
                         ReadExtractionItemAttributes(extractionLink, reader);
                         extractionLink.ExtractLinks = reader.GetAttribute("extract_links", true);
                         extractionLink.ExtractData = reader.GetAttribute("extract_data", false);
-                        extractionLink.HttpMethod = reader.GetAttribute("http_method", "GET");
+                        extractionLink.HttpMethod = reader.GetAttribute<string>("http_method", WebRequestMethods.Http.Get);
                         extractionLink.Type = reader.GetAttribute("type", ExtractionLink.LinkTypes.Auto);
                         
                         reader.ProcessChildren((childName, childReader) =>
                         {
                             switch (childName)
                             {
-                                case "items":
+                                case "data":
                                     extractionLink.ExtractionItems = ReadExtractionItemsSection(childReader);
+                                    break;
+                                case "parameters":
+                                    extractionLink.Parameters = ReadExtractionLinkParametersSection(childReader);
                                     break;
                                 case "post_processors":
                                     ReadExtractionItemPostProcessors(extractionLink, childReader);
@@ -406,11 +412,41 @@ namespace Rezgar.Crawler.Configuration
 
         #region Extraction items
 
+        private static IDictionary<string, StringWithDependencies> ReadExtractionLinkParametersSection(XmlReader reader)
+        {
+            var result = new Dictionary<string, StringWithDependencies>();
+
+            while (!(reader.Name == "parameters" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (reader.IsStartElement("parameter"))
+                {
+                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
+                }
+            }
+
+            return result;
+        }
+
+        private static IDictionary<string, string> ReadGlobalItemsSection(XmlReader reader)
+        {
+            var result = new Dictionary<string, string>();
+
+            while (!(reader.Name == "global" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (reader.IsStartElement("item"))
+                {
+                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
+                }
+            }
+
+            return result;
+        }
+
         private static IDictionary<string, ExtractionItem> ReadExtractionItemsSection(XmlReader reader)
         {
             var result = new Dictionary<string, ExtractionItem>();
             
-            while (!(reader.Name == "items" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            while (!(reader.Name == "data" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
             {
                 if (reader.IsStartElement("item"))
                 {

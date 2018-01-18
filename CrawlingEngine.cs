@@ -14,6 +14,7 @@ using Rezgar.Crawler.Download.ResourceContentUnits;
 using Rezgar.Crawler.Download.ResourceLinks;
 using System.Diagnostics;
 using Rezgar.Crawler.Engine;
+using Rezgar.Utils.Http;
 
 namespace Rezgar.Crawler
 {
@@ -203,6 +204,8 @@ namespace Rezgar.Crawler
                         {
                             using (var webResponse = webResponseTask.Result as HttpWebResponse)
                             {
+                                webRequest.FixCookies(webResponse);
+
                                 httpResultUnit.ResponseUrl = webResponse.ResponseUri.ToString();
                                 result.AddRange(await crawlingQueueItem
                                     .ResourceLink.ProcessWebResponseAsync(webResponse)

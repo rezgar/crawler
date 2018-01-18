@@ -18,7 +18,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             WebsiteJob job,
             DocumentLink referrerResourceLink
         ) 
-            : base(url, "GET", job)
+            : base(url, WebRequestMethods.Http.Get, job)
         {
             ReferrerResourceLink = referrerResourceLink;
         }

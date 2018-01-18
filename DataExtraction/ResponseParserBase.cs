@@ -53,7 +53,11 @@ namespace Rezgar.Crawler.DataExtraction
             {
                 foreach (var extractionItem in _websiteConfig.ExtractionItems.Values)
                 {
-                    ExtractItem(extractionItem, _websiteConfig.ExtractionItems, ExtractedItems);
+                    ExtractItem(
+                        extractionItem, 
+                        _websiteConfig.ExtractionItems, 
+                        ExtractedItems
+                    );
                 }
             }
         }
@@ -135,11 +139,17 @@ namespace Rezgar.Crawler.DataExtraction
             {
                 foreach (var dependencyName in stringWithDependencies.DependencyNames)
                 {
-                    ExtractItem(extractionItems[dependencyName], extractionItems, extractedItems, relativeLocationBase);
+                    ExtractItem(
+                        extractionItems[dependencyName], 
+                        extractionItems, 
+                        extractedItems,
+                        
+                        relativeLocationBase
+                    );
                 }
-
+                
                 if (!stringWithDependencies.HasBeenResolved)
-                    if (!stringWithDependencies.Resolve(extractedItems))
+                    if (!stringWithDependencies.Resolve(extractedItems, _websiteConfig.GlobalItems))
                     {
                         Trace.TraceError("ExtractSingleItem: Could not resolve item {0} with dependencies ({1}) based on extracted items {2}",
                             extractionItem.Name,

@@ -10,6 +10,7 @@ namespace Rezgar.Crawler.DataExtraction
     {
         public bool ExtractLinks;
         public bool ExtractData;
+        public IDictionary<string, StringWithDependencies> Parameters;
         public string HttpMethod;
         public LinkTypes Type;
 
@@ -28,6 +29,9 @@ namespace Rezgar.Crawler.DataExtraction
             foreach (var extractionItem in ExtractionItems.Values)
                 foreach (var stringWithDependencies in extractionItem.GetStringsWithDependencies())
                     yield return stringWithDependencies;
+
+            foreach (var parameter in Parameters)
+                yield return parameter.Value;
         }
 
         #region Declarations

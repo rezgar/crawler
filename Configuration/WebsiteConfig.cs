@@ -11,6 +11,12 @@ namespace Rezgar.Crawler.Configuration
 {
     public class WebsiteConfig
     {
+        #region Constants
+
+        #endregion
+
+        #region Fields and properties
+
         public string Name;
         public WebsiteCrawlingSettings CrawlingSettings;
         public IDictionary<string, WebsiteJob> JobsByName = new Dictionary<string, WebsiteJob>();
@@ -19,14 +25,26 @@ namespace Rezgar.Crawler.Configuration
             get => JobsByName.Values;
         }
 
-        // TODO: Move out of the class
-        //public HashSet<string> KnownUrlUniqueParts = new HashSet<string>();
+        public IDictionary<string, string> GlobalItems = new Dictionary<string, string>();
 
-        public IDictionary<string, ExtractionLink> ExtractionLinks = new Dictionary<string, ExtractionLink>();
         public IDictionary<string, ExtractionItem> ExtractionItems = new Dictionary<string, ExtractionItem>();
+        public IDictionary<string, ExtractionLink> ExtractionLinks = new Dictionary<string, ExtractionLink>();
 
-        //public IDictionary<string, CrawlingConditional> CrawlingConditionals = new Dictionary<string, CrawlingConditional>();
-        //public IDictionary<string, CrawlingCustomAction> CrawlingCustomActions = new Dictionary<string, CrawlingCustomAction>();
-        //public IDictionary<string, CrawlDataItemExtractionRule>
+        #endregion
+
+        #region Public methods
+
+        #endregion
+
+        #region Declarations
+
+        public static class DefaultItems
+        {
+            public const string USER_NAME = "user_name";
+            public const string PASSWORD = "password";
+            public const string REQUEST_VERIFICATION_TOKEN = "request_verification_token";
+        }
+
+        #endregion
     }
 }

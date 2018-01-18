@@ -51,12 +51,17 @@ namespace Rezgar.Crawler.DataExtraction
 
         #region Methods
 
-        public bool Resolve(CollectionDictionary<string, string> extractedItems)
+        public bool Resolve(CollectionDictionary<string, string> extractedItems, IDictionary<string, string> globalItems)
         {
             var resolvedValues = new CollectionDictionary<string>();
             foreach(var dependencyName in DependencyNames)
             {
-                if (extractedItems.ContainsKey(dependencyName))
+                if (globalItems.ContainsKey(dependencyName))
+                {
+                    var dependencyValue = globalItems[dependencyName];
+                    resolvedValues.AddValue(dependencyName, dependencyValue);
+                }
+                else if (extractedItems.ContainsKey(dependencyName))
                 {
                     var dependencyValues = extractedItems[dependencyName];
                     foreach (var dependencyValue in dependencyValues)

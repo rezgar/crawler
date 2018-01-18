@@ -93,12 +93,12 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 
         public System.Net.WebRequest SetUpWebRequest(System.Net.HttpWebRequest webRequest, ResourceLink resourceLink)
         {
-            webRequest.Method = WebRequestMethods.Http.Get;
+            webRequest.Method = resourceLink.HttpMethod;
 
             webRequest.AllowAutoRedirect = true;
             webRequest.MaximumAutomaticRedirections = MaxAutomaticRedirects;
             webRequest.CachePolicy = new System.Net.Cache.HttpRequestCachePolicy(System.Net.Cache.HttpRequestCacheLevel.BypassCache);
-
+            
             webRequest.AutomaticDecompression = AutoDecompression
                 ? DecompressionMethods.GZip | DecompressionMethods.Deflate
                 : DecompressionMethods.None;
@@ -119,8 +119,9 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             if (webRequest.KeepAlive)
                 webRequest.Headers.Set(HttpRequestHeader.KeepAlive, @"300");
 
+            // NOTE: Not available on .NET Standard 2.0
             // http://www.webmonkeys.org.uk/2012/09/c-the-server-committed-a-protocol-violation-sectionresponsestatusline/
-            webRequest.ServicePoint.Expect100Continue = false;
+            //webRequest.ServicePoint.Expect100Continue = false;
 
             #region Browser mimicking headers
 

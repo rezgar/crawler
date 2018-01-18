@@ -13,11 +13,11 @@ namespace Rezgar.Crawler.Configuration
         public int MaxSimmultaneousQueueItemsProcessed { get; } = 10;
         public TimeSpan MaxTimeToProcessOneQueueItem { get; } = TimeSpan.FromMinutes(5);
         
-        public readonly IList<WebsiteConfig> WebsiteConfigs = new List<WebsiteConfig>();
+        public readonly IDictionary<string, WebsiteConfig> WebsiteConfigs = new Dictionary<string, WebsiteConfig>();
 
         public IEnumerable<CrawlingQueueItem> GenerateCrawlingQueueItems()
         {
-            foreach (var config in WebsiteConfigs)
+            foreach (var config in WebsiteConfigs.Values)
                 foreach (var job in config.Jobs)
                     foreach (var entryItem in job.EntryCrawlingQueueItems)
                         yield return entryItem;

@@ -13,6 +13,7 @@ namespace Rezgar.Crawler.Download
     public abstract class ResourceLink
     {
         public readonly StringWithDependencies Url;
+        public readonly IDictionary<string, string> Parameters;
         public readonly string HttpMethod;
         public readonly WebsiteJob Job;
         public readonly WebsiteConfig Config;
