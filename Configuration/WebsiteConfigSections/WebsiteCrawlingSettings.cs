@@ -21,7 +21,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
         public CultureInfo Culture;
         public TimeZoneInfo TimeZone = TimeZoneInfo.Local;
 
-        public DocumentTypes DocumentType = DocumentTypes.Html;
+        public DocumentTypes DocumentType = DocumentTypes.HtmlLocationCSS;
         public Encoding FallBackEncoding;
 
         public Regex UrlUniquePartRegex;
@@ -168,7 +168,8 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 
         public enum DocumentTypes
         {
-            Html,
+            HtmlLocationCSS,
+            HtmlLocationXPath,
             Xml,
             Json
         }

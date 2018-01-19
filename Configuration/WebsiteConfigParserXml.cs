@@ -43,19 +43,15 @@ namespace Rezgar.Crawler.Configuration
                         break;
 
                     case "settings":
-                        config.CrawlingSettings = ReadWebsiteCrawlingSettingsSection(reader);
+                        config.CrawlingSettings = ReadWebsiteCrawlingSettingsSection(reader, config);
                         break;
 
-                    case "global":
-                        config.GlobalItems = ReadGlobalItemsSection(reader);
+                    case "dictionary":
+                        config.Dictionary = ReadDictionarySection(reader, config);
                         break;
 
-                    case "data":
-                        config.ExtractionItems = ReadExtractionItemsSection(reader);
-                        break;
-
-                    case "links":
-                        config.ExtractionLinks = ReadExtractionLinksSection(reader);
+                    case "extraction":
+                        config.ExtractionItems = ReadExtractionItemsSection(reader, config);
                         break;
 
                     //case "conditionals":
@@ -158,7 +154,7 @@ namespace Rezgar.Crawler.Configuration
         //        : null;
         //}
 
-        private static WebsiteCrawlingSettings ReadWebsiteCrawlingSettingsSection(XmlReader reader)
+        private static WebsiteCrawlingSettings ReadWebsiteCrawlingSettingsSection(XmlReader reader, WebsiteConfig config)
         {
             var result = new WebsiteCrawlingSettings();
 
@@ -326,24 +322,35 @@ namespace Rezgar.Crawler.Configuration
                             case "links":
                                 #region Pages
 
-                                foreach (var extractionLink in ReadExtractionLinksSection(reader).Values)
+                                while (!(reader.Name == "links" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
                                 {
-                                    // NOTE: This are entry links, so they can't have any location to extract items from, only constant values
+                                    if (!reader.IsStartElement())
+                                        continue;
 
-                                    var extractedItems = new CollectionDictionary<string, string>();
-                                    foreach(var extractionItem in extractionLink.ExtractionItems.Values)
+                                    switch (reader.Name)
                                     {
-                                        extractedItems.AddValue(extractionItem.Name, extractionItem.Value);
+                                        case "link":
+                                            var extractionLink = ReadExtractionLinkSection(reader, config);
+                                            var linkExtractedItems = new CollectionDictionary<string, string>();
+                                            foreach (var extractionItem in extractionLink.ExtractionItems.Values)
+                                            {
+                                                linkExtractedItems.AddValue(extractionItem.Name, extractionItem.Value);
+                                            }
+
+                                            // NOTE: These are entry links, so they can't have any location to extract items from, only constant values
+                                            var extractedLink = new AutoDetectLink(
+                                                extractionLink.Value,
+                                                websiteJob,
+                                                extractionLink,
+                                                linkExtractedItems
+                                            );
+
+                                            websiteJob.EntryCrawlingQueueItems.Add(new CrawlingQueueItem(extractedLink));
+                                            break;
+
+                                        default:
+                                            throw new ArgumentException("Unrecognized element", reader.Name);
                                     }
-
-                                    var extractedLink = new AutoDetectLink(
-                                        extractionLink.Value,
-                                        websiteJob,
-                                        extractionLink,
-                                        extractedItems
-                                    );
-
-                                    websiteJob.EntryCrawlingQueueItems.Add(new CrawlingQueueItem(extractedLink));
                                 }
 
                                 #endregion
@@ -360,12 +367,16 @@ namespace Rezgar.Crawler.Configuration
 
             return result;
         }
-        
-        private static IDictionary<string, ExtractionLink> ReadExtractionLinksSection(XmlReader reader)
-        {
-            var links = new Dictionary<string, ExtractionLink>();
 
-            while (!(reader.Name == "links" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+        #endregion
+
+        #region Extraction items
+
+        private static IDictionary<string, ExtractionItem> ReadExtractionItemsSection(XmlReader reader, WebsiteConfig config)
+        {
+            var result = new Dictionary<string, ExtractionItem>();
+
+            while (!(reader.Name == "extraction" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
             {
                 if (!reader.IsStartElement())
                     continue;
@@ -373,44 +384,49 @@ namespace Rezgar.Crawler.Configuration
                 switch (reader.Name)
                 {
                     case "link":
-                        var extractionLink = new ExtractionLink();
-
-                        ReadExtractionItemAttributes(extractionLink, reader);
-                        extractionLink.ExtractLinks = reader.GetAttribute("extract_links", true);
-                        extractionLink.ExtractData = reader.GetAttribute("extract_data", false);
-                        extractionLink.HttpMethod = reader.GetAttribute<string>("http_method", WebRequestMethods.Http.Get);
-                        extractionLink.Type = reader.GetAttribute("type", ExtractionLink.LinkTypes.Auto);
-                        
-                        reader.ProcessChildren((childName, childReader) =>
-                        {
-                            switch (childName)
-                            {
-                                case "data":
-                                    extractionLink.ExtractionItems = ReadExtractionItemsSection(childReader);
-                                    break;
-                                case "parameters":
-                                    extractionLink.Parameters = ReadExtractionLinkParametersSection(childReader);
-                                    break;
-                                case "post_processors":
-                                    ReadExtractionItemPostProcessors(extractionLink, childReader);
-                                    break;
-                            }
-                        });
-                        
-                        links.Add(extractionLink.Name, extractionLink);
+                        var extractionLink = ReadExtractionLinkSection(reader, config);
+                        result.Add(extractionLink.Name, extractionLink);
                         break;
-
+                    case "item":
+                        var extractionItem = ReadExtractionItemSection(reader, config);
+                        result.Add(extractionItem.Name, extractionItem);
+                        break;
                     default:
                         throw new ArgumentException("Unrecognized element", reader.Name);
                 }
             }
 
-            return links;
+            return result;
         }
 
-        #endregion
+        private static ExtractionLink ReadExtractionLinkSection(XmlReader reader, WebsiteConfig config)
+        {
+            var extractionLink = new ExtractionLink();
 
-        #region Extraction items
+            ReadExtractionItemAttributes(extractionLink, reader, config);
+            extractionLink.ExtractLinks = reader.GetAttribute("extract_links", true);
+            extractionLink.ExtractData = reader.GetAttribute("extract_data", false);
+            extractionLink.HttpMethod = reader.GetAttribute<string>("http_method", WebRequestMethods.Http.Get);
+            extractionLink.Type = reader.GetAttribute("type", ExtractionLink.LinkTypes.Auto);
+
+            reader.ProcessChildren((childName, childReader) =>
+            {
+                switch (childName)
+                {
+                    case "data":
+                        extractionLink.ExtractionItems = ReadExtractionItemsSection(childReader, config);
+                        break;
+                    case "parameters":
+                        extractionLink.Parameters = ReadExtractionLinkParametersSection(childReader);
+                        break;
+                    case "post_processors":
+                        ReadExtractionItemPostProcessors(extractionLink, childReader);
+                        break;
+                }
+            });
+
+            return extractionLink;
+        }
 
         private static IDictionary<string, StringWithDependencies> ReadExtractionLinkParametersSection(XmlReader reader)
         {
@@ -426,43 +442,18 @@ namespace Rezgar.Crawler.Configuration
 
             return result;
         }
-
-        private static IDictionary<string, string> ReadGlobalItemsSection(XmlReader reader)
+        
+        private static ExtractionItem ReadExtractionItemSection(XmlReader reader, WebsiteConfig config)
         {
-            var result = new Dictionary<string, string>();
+            var extractionItem = new ExtractionItem();
 
-            while (!(reader.Name == "global" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
-            {
-                if (reader.IsStartElement("item"))
-                {
-                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
-                }
-            }
+            ReadExtractionItemAttributes(extractionItem, reader, config);
+            ReadExtractionItemPostProcessors(extractionItem, reader);
 
-            return result;
+            return extractionItem;
         }
 
-        private static IDictionary<string, ExtractionItem> ReadExtractionItemsSection(XmlReader reader)
-        {
-            var result = new Dictionary<string, ExtractionItem>();
-            
-            while (!(reader.Name == "data" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
-            {
-                if (reader.IsStartElement("item"))
-                {
-                    var extractionItem = new ExtractionItem();
-
-                    ReadExtractionItemAttributes(extractionItem, reader);
-                    ReadExtractionItemPostProcessors(extractionItem, reader);
-
-                    result.Add(extractionItem.Name, extractionItem);
-                }
-            }
-
-            return result;
-        }
-
-        private static void ReadExtractionItemAttributes(ExtractionItem extractionItem, XmlReader reader)
+        private static void ReadExtractionItemAttributes(ExtractionItem extractionItem, XmlReader reader, WebsiteConfig config)
         {
             extractionItem.Name = XmlReaderExtensions.GetAttribute(reader, "name", "default");
             extractionItem.Value = reader.GetAttribute("value");
@@ -475,7 +466,7 @@ namespace Rezgar.Crawler.Configuration
 
             extractionItem.SetExtractionContext(
                 reader.GetAttribute("context"),
-                reader.GetAttribute("context_document_type", WebsiteCrawlingSettings.DocumentTypes.Html)
+                reader.GetAttribute("context_document_type", config.CrawlingSettings.DocumentType)
             );
         }
         private static void ReadExtractionItemPostProcessors(ExtractionItem extractionItem, XmlReader reader)
@@ -568,6 +559,25 @@ namespace Rezgar.Crawler.Configuration
                 default:
                     throw new NotSupportedException();
             }
+        }
+
+        #endregion
+
+        #region Dictionary
+        
+        private static IDictionary<string, string> ReadDictionarySection(XmlReader reader, WebsiteConfig config)
+        {
+            var result = new Dictionary<string, string>();
+
+            while (!(reader.Name == "dictionary" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (reader.IsStartElement("item"))
+                {
+                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
+                }
+            }
+
+            return result;
         }
 
         #endregion

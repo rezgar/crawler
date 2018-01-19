@@ -47,19 +47,13 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             var parsedExtractableDocument = Job.Config
                 .ParseExtractableDocumentWebResponse(webResponse, this);
 
-            var links = new List<ResourceLink>();
-            var data = parsedExtractableDocument.ExtractedItems;
-
-            foreach (var extractedLinks in parsedExtractableDocument.ExtractedLinks.Values)
-            {
-                links.AddRange(extractedLinks);
-            }
-            
             var result = new List<ResourceContentUnit>();
 
+            var links = parsedExtractableDocument.ExtractedLinks.Values.SelectMany(pred => pred).ToList();
             if (links.Count > 0)
                 result.Add(new ExtractedLinksUnit(links));
 
+            var data = parsedExtractableDocument.ExtractedItems;
             if (data.Count > 0)
                 result.Add(new ExtractedDataUnit(data));
 

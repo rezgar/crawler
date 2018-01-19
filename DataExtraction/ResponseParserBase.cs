@@ -32,7 +32,7 @@ namespace Rezgar.Crawler.DataExtraction
             foreach (var kvp in extractableDocumentLink.ExtractedItems)
                 ExtractedItems.AddValues(kvp.Key, kvp.Value);
         }
-
+        
         protected abstract IEnumerable<(string ExtractedValue, ResponseParserPositionPointer ExtractedValuePosition)> 
             ExtractItemValuesFromLocation(
                 ExtractionLocation location, 
@@ -41,88 +41,32 @@ namespace Rezgar.Crawler.DataExtraction
         
         protected void ExtractItems()
         {
-            if (_extractableDocumentLink.ExtractLinks)
+            foreach (var extractionItem in _websiteConfig.ExtractionItems.Values)
             {
-                foreach(var extractionLink in _websiteConfig.ExtractionLinks.Values)
+                var extract = false;
+                switch (extractionItem)
                 {
-                    ExtractLink(extractionLink);
-                }
-            }
-
-            if (_extractableDocumentLink.ExtractData)
-            {
-                foreach (var extractionItem in _websiteConfig.ExtractionItems.Values)
-                {
-                    ExtractItem(
-                        extractionItem, 
-                        _websiteConfig.ExtractionItems, 
-                        ExtractedItems
-                    );
-                }
-            }
-        }
-
-        protected void ExtractLink(
-            ExtractionLink extractionLink
-        )
-        {
-            var extractedLinkValuesWithPosition = new List<(string ExtractedValue, ResponseParserPositionPointer? ExtractedValuePosition)>();
-
-            if (extractionLink.Value != null)
-                extractedLinkValuesWithPosition.Add((extractionLink.Value, null));
-
-            if (extractionLink.Location != null)
-            {
-                foreach(var extractedLinkValueWithPostition in ExtractItemValuesFromLocation(extractionLink.Location))
-                    extractedLinkValuesWithPosition.Add(extractedLinkValueWithPostition);
-            }
-
-            var extractedLinkUrlIndex = 0;
-            foreach (var extractedLinkValueWithPosition in extractedLinkValuesWithPosition)
-            {
-                var linkExtractedItems = new CollectionDictionary<string, string>();
-                foreach (var extractionItem in extractionLink.ExtractionItems.Values)
-                {
-                    ExtractItem(
-                        extractionItem, 
-                        extractionLink.ExtractionItems, 
-                        linkExtractedItems,
-
-                        extractedLinkValueWithPosition.ExtractedValuePosition
-                    );
-                }
-
-                var url = extractedLinkValueWithPosition.ExtractedValue;
-                var job = _extractableDocumentLink.Job;
-
-                ResourceLink link;
-                switch(extractionLink.Type)
-                {
-                    case ExtractionLink.LinkTypes.Document:
-                        link = new DocumentLink(url, extractionLink.HttpMethod, job, extractionLink.ExtractLinks, extractionLink.ExtractData, linkExtractedItems, _extractableDocumentLink);
-                        break;
-                    case ExtractionLink.LinkTypes.File:
-                        link = new FileLink(url, job, _extractableDocumentLink);
-                        break;
-                    case ExtractionLink.LinkTypes.Auto:
-                        link = new AutoDetectLink(
-                            extractedLinkValueWithPosition.ExtractedValue,
-                            _extractableDocumentLink.Job,
-                            extractionLink,
-                            linkExtractedItems,
-                            _extractableDocumentLink
-                        );
+                    case ExtractionLink extractionLink:
+                        extract = _extractableDocumentLink.ExtractLinks;
                         break;
                     default:
-                        throw new NotSupportedException();
+                        extract = _extractableDocumentLink.ExtractData;
+                        break;
                 }
 
-                ExtractedLinks.AddValue(
-                    extractionLink.Name,
-                    link
-                );
+                if (extract)
+                {
+                    // First, extract item as a normal item
+                    ExtractItem(extractionItem, _websiteConfig.ExtractionItems, ExtractedItems);
 
-                extractedLinkUrlIndex++;
+                    // Then, add specific functionality, like link-scoped items and registering a ExtractedLink entity
+                    switch (extractionItem)
+                    {
+                        case ExtractionLink extractionLink:
+                            ExtractLink(extractionLink);
+                            break;
+                    }
+                }
             }
         }
 
@@ -133,6 +77,9 @@ namespace Rezgar.Crawler.DataExtraction
             ResponseParserPositionPointer? relativeLocationBase = null
         )
         {
+            #region Dependencies
+
+            // Links are extracted as dependencies as well (like normal extraction items)
             // ensure dependencies are extracted
             var stringsWithDependencies = extractionItem.GetStringsWithDependencies();
             foreach (var stringWithDependencies in stringsWithDependencies)
@@ -140,16 +87,16 @@ namespace Rezgar.Crawler.DataExtraction
                 foreach (var dependencyName in stringWithDependencies.DependencyNames)
                 {
                     ExtractItem(
-                        extractionItems[dependencyName], 
-                        extractionItems, 
+                        extractionItems[dependencyName],
+                        extractionItems,
                         extractedItems,
-                        
+
                         relativeLocationBase
                     );
                 }
-                
+
                 if (!stringWithDependencies.HasBeenResolved)
-                    if (!stringWithDependencies.Resolve(extractedItems, _websiteConfig.GlobalItems))
+                    if (!stringWithDependencies.Resolve(extractedItems, _websiteConfig.Dictionary))
                     {
                         Trace.TraceError("ExtractSingleItem: Could not resolve item {0} with dependencies ({1}) based on extracted items {2}",
                             extractionItem.Name,
@@ -163,17 +110,22 @@ namespace Rezgar.Crawler.DataExtraction
             if (extractedItems.ContainsKey(extractionItem.Name))
                 return; // already extracted as someone's dependency
 
+            #endregion
+
             var extractedValues = new List<string>();
 
+            // constant value, if specified in config
             if (extractionItem.Value != null)
                 extractedValues.Add(extractionItem.Value);
 
+            // values, extracted from page using selector
             if (extractionItem.Location != null)
                 extractedValues.AddRange(
                     ExtractItemValuesFromLocation(extractionItem.Location, relativeLocationBase)
                     .Select(pred => pred.ExtractedValue)
                 );
 
+            // apply post-processing, if specified
             foreach (var value in extractedValues)
             {
                 var valuesBeingProcessed = new[] { value };
@@ -186,6 +138,64 @@ namespace Rezgar.Crawler.DataExtraction
                 extractedItems.AddValues(extractionItem.Name, valuesBeingProcessed);
             }
         }
+        
+        private void ExtractLink(ExtractionLink extractionLink)
+        {
+            if (ExtractedItems.ContainsKey(extractionLink.Name))
+            {
+                for (var i = 0; i < ExtractedItems[extractionLink.Name].Count; i++)
+                {
+                    var linkValue = ExtractedItems[extractionLink.Name][i];
+                    var linkDocumentPositionPointer = new ResponseParserPositionPointer(extractionLink.Location, i);
+
+                    var linkScopedExtractedItems = new CollectionDictionary<string, string>();
+                    foreach (var extractionItem in extractionLink.ExtractionItems.Values)
+                    {
+                        ExtractItem(
+                            extractionItem,
+                            extractionLink.ExtractionItems,
+                            linkScopedExtractedItems,
+
+                            linkDocumentPositionPointer
+                        );
+                    }
+
+                    var url = linkValue;
+                    var job = _extractableDocumentLink.Job;
+
+                    ResourceLink link;
+                    switch (extractionLink.Type)
+                    {
+                        case ExtractionLink.LinkTypes.Document:
+                            link = new DocumentLink(url, extractionLink.HttpMethod, job, extractionLink.ExtractLinks, extractionLink.ExtractData, linkScopedExtractedItems, _extractableDocumentLink);
+                            break;
+                        case ExtractionLink.LinkTypes.File:
+                            link = new FileLink(url, job, _extractableDocumentLink);
+                            break;
+                        case ExtractionLink.LinkTypes.Auto:
+                            link = new AutoDetectLink(
+                                linkValue,
+                                _extractableDocumentLink.Job,
+                                extractionLink,
+                                linkScopedExtractedItems,
+                                _extractableDocumentLink
+                            );
+                            break;
+                        default:
+                            throw new NotSupportedException();
+                    }
+
+                    ExtractedLinks.AddValue(
+                        extractionLink.Name,
+                        link
+                    );
+                }
+            }
+        }
+
+        #region Utility
+
+        #endregion
 
         #region Declarations
 
@@ -210,8 +220,10 @@ namespace Rezgar.Crawler.DataExtraction
         {
             switch (websiteConfig.CrawlingSettings.DocumentType)
             {
-                case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Html:
-                    return new HtmlResponseParser(websiteConfig, webResponse, extractableDocumentLink);
+                case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlLocationCSS:
+                    return new HtmlLocationCSSResponseParser(websiteConfig, webResponse, extractableDocumentLink);
+                case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlLocationXPath:
+                    return new HtmlLocationXPathResponseParser(websiteConfig, webResponse, extractableDocumentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Xml:
                     throw new NotImplementedException();
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Json:

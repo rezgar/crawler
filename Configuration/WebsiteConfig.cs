@@ -25,10 +25,9 @@ namespace Rezgar.Crawler.Configuration
             get => JobsByName.Values;
         }
 
-        public IDictionary<string, string> GlobalItems = new Dictionary<string, string>();
+        public IDictionary<string, string> Dictionary = new Dictionary<string, string>();
 
         public IDictionary<string, ExtractionItem> ExtractionItems = new Dictionary<string, ExtractionItem>();
-        public IDictionary<string, ExtractionLink> ExtractionLinks = new Dictionary<string, ExtractionLink>();
 
         #endregion
 
