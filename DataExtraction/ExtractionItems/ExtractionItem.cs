@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Rezgar.Crawler.DataExtraction
+namespace Rezgar.Crawler.DataExtraction.ExtractionItems
 {
     public class ExtractionItem : IDependent
     {

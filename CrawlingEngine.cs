@@ -31,6 +31,9 @@ namespace Rezgar.Crawler
 
         public async Task ProcessCrawlingQueueAsync(CrawlingQueue crawlingQueue)
         {
+            if (!crawlingQueue.CrawlingConfiguration.Validate())
+                throw new ArgumentException("Crawling configuration invalid. Crawling not started.");
+            
             _crawlingParameters.CancellationTokenSource.Token.Register(() => 
                 crawlingQueue.QueueCancellationTokenSource.Cancel()
             );
@@ -73,7 +76,7 @@ namespace Rezgar.Crawler
                 tasksLock.EnterWriteLock();
 
                 tasks.Add(TaskExtensions.Unwrap(
-                    CrawlAsync(queueItem)
+                    CrawlAsync(queueItem.ResourceLink)
                         .ContinueWith(async task =>
                         {
                             tasksLock.EnterWriteLock();
@@ -179,14 +182,16 @@ namespace Rezgar.Crawler
             await Task.WhenAll(tasks.ToArray());
         }
 
-        protected async Task<IList<ResourceContentUnit>> CrawlAsync(CrawlingQueueItem crawlingQueueItem)
+        #region Static methods
+
+        public static async Task<IList<ResourceContentUnit>> CrawlAsync(ResourceLink resourceLink, bool processResponse = true)
         {
-            var webRequest = WebRequest.Create(crawlingQueueItem.ResourceLink.Uri) as HttpWebRequest;
+            var webRequest = WebRequest.Create(resourceLink.Uri) as HttpWebRequest;
 
             // TODO: Proxy
 
-            crawlingQueueItem.ResourceLink.Job.Config.CrawlingSettings
-                .SetUpWebRequest(webRequest, crawlingQueueItem.ResourceLink);
+            resourceLink.Job.Config.CrawlingSettings
+                .SetUpWebRequest(webRequest, resourceLink);
 
             return await
                 await webRequest.GetResponseAsync()
@@ -196,7 +201,7 @@ namespace Rezgar.Crawler
                         
                         var httpResultUnit = new HttpResultUnit
                         {
-                            RequestUrl = crawlingQueueItem.ResourceLink.Url,
+                            RequestUrl = resourceLink.Url,
                             Exception = webResponseTask.Exception
                         };
                         
@@ -207,10 +212,6 @@ namespace Rezgar.Crawler
                                 webRequest.FixCookies(webResponse);
 
                                 httpResultUnit.ResponseUrl = webResponse.ResponseUri.ToString();
-                                result.AddRange(await crawlingQueueItem
-                                    .ResourceLink.ProcessWebResponseAsync(webResponse)
-                                );
-
                                 httpResultUnit.ContentEncoding = webResponse.ContentEncoding;
                                 httpResultUnit.ContentLength = webResponse.ContentLength;
                                 httpResultUnit.ContentType = webResponse.ContentType;
@@ -218,10 +219,19 @@ namespace Rezgar.Crawler
                                 httpResultUnit.Headers = webResponse.Headers;
                                 httpResultUnit.HttpStatus = webResponse.StatusCode;
                                 httpResultUnit.HttpStatusDescription = webResponse.StatusDescription;
+                                
+                                if (processResponse)
+                                {
+                                    result.AddRange(await resourceLink.ProcessWebResponseAsync(webResponse));
+                                }
+                                else
+                                {
+                                    result.Add(await resourceLink.ReadResponseStringAsync(webResponse));
+                                }
                             }
                         }
                         else
-                            Trace.TraceError("CrawlAsync.GetWebResponse: Failed for queue item {0} with exception {1}", crawlingQueueItem.ResourceLink, webResponseTask.Exception);
+                            Trace.TraceError("CrawlAsync.GetWebResponse: Failed for queue item {0} with exception {1}", resourceLink, webResponseTask.Exception);
 
                         result.Add(httpResultUnit);
 
@@ -229,6 +239,7 @@ namespace Rezgar.Crawler
                     });
         }
 
+        #endregion
 
         public void Dispose()
         {

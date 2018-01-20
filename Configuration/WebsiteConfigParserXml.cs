@@ -1,5 +1,6 @@
 ﻿using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Crawler.DataExtraction.PostProcessors;
 using Rezgar.Crawler.Download;
 using Rezgar.Crawler.Download.ResourceLinks;
@@ -47,20 +48,12 @@ namespace Rezgar.Crawler.Configuration
                         break;
 
                     case "dictionary":
-                        config.Dictionary = ReadDictionarySection(reader, config);
+                        config.PredefinedValues = ReadPredefinedValuesSection(reader, config);
                         break;
 
                     case "extraction":
                         config.ExtractionItems = ReadExtractionItemsSection(reader, config);
                         break;
-
-                    //case "conditionals":
-                    //    websiteConfig.CrawlingConditionals = ReadCrawlingConditionalsSection(reader);
-                    //    break;
-
-                    //case "actions":
-                    //    websiteConfig.CrawlingCustomActions = ReadCrawlingCustomActionsSection(reader);
-                    //    break;
 
                     case "jobs":
                         var websiteJobs = ReadWebsiteJobsSection(reader, config);
@@ -332,7 +325,7 @@ namespace Rezgar.Crawler.Configuration
                                         case "link":
                                             var extractionLink = ReadExtractionLinkSection(reader, config);
                                             var linkExtractedItems = new CollectionDictionary<string, string>();
-                                            foreach (var extractionItem in extractionLink.ExtractionItems.Values)
+                                            foreach (var extractionItem in extractionLink.PredefinedExtractionItems.Values)
                                             {
                                                 linkExtractedItems.AddValue(extractionItem.Name, extractionItem.Value);
                                             }
@@ -383,6 +376,10 @@ namespace Rezgar.Crawler.Configuration
 
                 switch (reader.Name)
                 {
+                    case "frame":
+                        var extractionFrame = ReadExtractionFrameSection(reader, config);
+                        result.Add(extractionFrame.Name, extractionFrame);
+                        break;
                     case "link":
                         var extractionLink = ReadExtractionLinkSection(reader, config);
                         result.Add(extractionLink.Name, extractionLink);
@@ -399,14 +396,28 @@ namespace Rezgar.Crawler.Configuration
             return result;
         }
 
+        private static ExtractionFrame ReadExtractionFrameSection(XmlReader reader, WebsiteConfig config)
+        {
+            var extractionFrame = new ExtractionFrame();
+            ReadExtractionLinkSection(reader, config, extractionFrame);
+
+            extractionFrame.Type = ExtractionLink.LinkTypes.Document;
+
+            return extractionFrame;
+        }
         private static ExtractionLink ReadExtractionLinkSection(XmlReader reader, WebsiteConfig config)
         {
             var extractionLink = new ExtractionLink();
+            ReadExtractionLinkSection(reader, config, extractionLink);
 
+            return extractionLink;
+        }
+        private static void ReadExtractionLinkSection(XmlReader reader, WebsiteConfig config, ExtractionLink extractionLink)
+        {
             ReadExtractionItemAttributes(extractionLink, reader, config);
-            extractionLink.ExtractLinks = reader.GetAttribute("extract_links", true);
-            extractionLink.ExtractData = reader.GetAttribute("extract_data", false);
-            extractionLink.HttpMethod = reader.GetAttribute<string>("http_method", WebRequestMethods.Http.Get);
+            extractionLink.ExtractLinks = reader.GetAttribute("extract_links", extractionLink.ExtractLinks);
+            extractionLink.ExtractData = reader.GetAttribute("extract_data", extractionLink.ExtractData);
+            extractionLink.HttpMethod = reader.GetAttribute<string>("http_method", extractionLink.HttpMethod);
             extractionLink.Type = reader.GetAttribute("type", ExtractionLink.LinkTypes.Auto);
 
             reader.ProcessChildren((childName, childReader) =>
@@ -414,7 +425,8 @@ namespace Rezgar.Crawler.Configuration
                 switch (childName)
                 {
                     case "data":
-                        extractionLink.ExtractionItems = ReadExtractionItemsSection(childReader, config);
+                        extractionLink.IsPredefinedExtractionItemsLocationRelativeToLink = childReader.GetAttribute("relative", extractionLink.IsPredefinedExtractionItemsLocationRelativeToLink);
+                        extractionLink.PredefinedExtractionItems = ReadExtractionItemsSection(childReader, config);
                         break;
                     case "parameters":
                         extractionLink.Parameters = ReadExtractionLinkParametersSection(childReader);
@@ -424,8 +436,6 @@ namespace Rezgar.Crawler.Configuration
                         break;
                 }
             });
-
-            return extractionLink;
         }
 
         private static IDictionary<string, StringWithDependencies> ReadExtractionLinkParametersSection(XmlReader reader)
@@ -565,15 +575,21 @@ namespace Rezgar.Crawler.Configuration
 
         #region Dictionary
         
-        private static IDictionary<string, string> ReadDictionarySection(XmlReader reader, WebsiteConfig config)
+        private static WebsitePredefinedValues ReadPredefinedValuesSection(XmlReader reader, WebsiteConfig config)
         {
-            var result = new Dictionary<string, string>();
+            var result = new WebsitePredefinedValues();
 
             while (!(reader.Name == "dictionary" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
             {
                 if (reader.IsStartElement("item"))
                 {
-                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
+                    var name = reader.GetAttribute("name");
+                    var value = reader.GetAttribute("value");
+
+                    result[name] = value;
+
+                    if (reader.GetAttribute("required", false))
+                        result.Required.Add(name);
                 }
             }
 

@@ -2,6 +2,7 @@
 using Rezgar.Crawler.Queue;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,6 +22,21 @@ namespace Rezgar.Crawler.Configuration
                 foreach (var job in config.Jobs)
                     foreach (var entryItem in job.EntryCrawlingQueueItems)
                         yield return entryItem;
+        }
+
+        public bool Validate()
+        {
+            var result = true;
+            foreach(var websiteConfig in WebsiteConfigs.Values)
+            {
+                if (!websiteConfig.Validate())
+                {
+                    result = false;
+                }
+            }
+
+            Trace.TraceError("Crawling configuration validation failed for one or more websites");
+            return result;
         }
     }
 }

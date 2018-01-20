@@ -1,5 +1,6 @@
 ﻿using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Utils.Collections;
 using System;
 using System.Collections.Generic;

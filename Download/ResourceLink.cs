@@ -1,6 +1,8 @@
 ﻿using Rezgar.Crawler.Configuration;
 using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.Download.ResourceContentUnits;
+using Rezgar.Utils.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,6 +47,10 @@ namespace Rezgar.Crawler.Download
         }
 
         public abstract Task<IList<ResourceContentUnit>> ProcessWebResponseAsync(WebResponse webResponse);
+        public async Task<ResponseStringUnit> ReadResponseStringAsync(WebResponse webResponse)
+        {
+            return new ResponseStringUnit(await webResponse.GetResponseStringAsync());
+        }
 
         public override string ToString()
         {

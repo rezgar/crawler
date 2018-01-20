@@ -1,7 +1,9 @@
 ﻿using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -25,7 +27,7 @@ namespace Rezgar.Crawler.Configuration
             get => JobsByName.Values;
         }
 
-        public IDictionary<string, string> Dictionary = new Dictionary<string, string>();
+        internal WebsitePredefinedValues PredefinedValues = new WebsitePredefinedValues();
 
         public IDictionary<string, ExtractionItem> ExtractionItems = new Dictionary<string, ExtractionItem>();
 
@@ -33,17 +35,27 @@ namespace Rezgar.Crawler.Configuration
 
         #region Public methods
 
+        public void PredefineValue(string name, string value)
+        {
+            PredefinedValues[name] = value;
+        }
+
+        public bool Validate()
+        {
+            var result = true;
+            if (!PredefinedValues.Validate())
+            {
+                Trace.TraceError($"Predefined Values validation failed for WebsiteConfig {Name}");
+                result = false;
+            }
+            
+            return result;
+        }
+
         #endregion
 
         #region Declarations
-
-        public static class DefaultItems
-        {
-            public const string USER_NAME = "user_name";
-            public const string PASSWORD = "password";
-            public const string REQUEST_VERIFICATION_TOKEN = "request_verification_token";
-        }
-
+        
         #endregion
     }
 }
