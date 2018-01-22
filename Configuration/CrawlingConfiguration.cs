@@ -20,8 +20,8 @@ namespace Rezgar.Crawler.Configuration
         {
             foreach (var config in WebsiteConfigs.Values)
                 foreach (var job in config.Jobs)
-                    foreach (var entryItem in job.EntryCrawlingQueueItems)
-                        yield return entryItem;
+                    foreach (var link in job.EntryLinks)
+                        yield return new CrawlingQueueItem(link);
         }
 
         public bool Validate()

@@ -14,6 +14,8 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 {
     public class WebsiteCrawlingSettings
     {
+        #region Settings
+
         public const int MaxAutomaticRedirects = 10;
 
         public string PageGenuityMarkerItemId = null;
@@ -91,6 +93,10 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
         public int ImageErrorRetryTimes = 5;
         public int ErrorRetryTimeout = 2000; //ms
 
+        #endregion
+
+        public CookieCollection Cookies;
+
         public System.Net.WebRequest SetUpWebRequest(System.Net.HttpWebRequest webRequest, ResourceLink resourceLink)
         {
             webRequest.Method = resourceLink.HttpMethod;
@@ -106,7 +112,12 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             webRequest.Timeout = (int)DownloadTimeout.TotalMilliseconds;
             webRequest.ReadWriteTimeout = webRequest.Timeout;
 
-            //webRequest.CookieContainer = data.Job.CookieContainer;
+            if (Cookies != null && webRequest.SupportsCookieContainer)
+            {
+                webRequest.CookieContainer = new CookieContainer();
+                webRequest.CookieContainer.Add(Cookies);
+            }
+
             //if (data.Job.SourceDomainCookie != null)
             //    webRequest.Headers.Add(HttpRequestHeader.Cookie, data.Job.SourceDomainCookie);
 

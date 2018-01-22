@@ -17,7 +17,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 
         public WebsiteConfig Config;
         //public Dictionary<string, CrawlingConditional> Conditionals;
-        public IList<CrawlingQueueItem> EntryCrawlingQueueItems = new List<CrawlingQueueItem>();
+        public IList<ResourceLink> EntryLinks = new List<ResourceLink>();
         
         public System.Net.CookieContainer CookieContainer;
 

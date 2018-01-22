@@ -51,9 +51,9 @@ namespace Rezgar.Crawler.Configuration
                         config.PredefinedValues = ReadPredefinedValuesSection(reader, config);
                         break;
 
-                    case "extraction":
-                        config.ExtractionItems = ReadExtractionItemsSection(reader, config);
-                        break;
+                    case "initialization":
+                        config.InitializationDocumentLink = ReadInitializationDocumentSection(reader, config);
+                            break;
 
                     case "jobs":
                         var websiteJobs = ReadWebsiteJobsSection(reader, config);
@@ -66,6 +66,10 @@ namespace Rezgar.Crawler.Configuration
                             job.Config = config;
                             config.JobsByName.Add(job.Name, job);
                         }
+                        break;
+
+                    case "extraction":
+                        config.ExtractionItems = ReadExtractionItemsSection(reader, config);
                         break;
                 }
 
@@ -283,8 +287,51 @@ namespace Rezgar.Crawler.Configuration
 
         #endregion
 
+        #region Initialization Settings
+
+        private static DocumentLink ReadInitializationDocumentSection(XmlReader reader, WebsiteConfig config)
+        {
+            var result = new DocumentLink(
+                reader.GetAttribute("url"),
+                reader.GetAttribute<string>("http_method", System.Net.WebRequestMethods.Http.Get),
+                config,
+                false,
+                true
+            );
+
+            result.ExtractionItemsOverride = new Dictionary<string, ExtractionItem>();
+
+            while (!(reader.Name == "initialization" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (!reader.IsStartElement())
+                    continue;
+
+                switch (reader.Name)
+                {
+                    case "frame":
+                        var extractionFrame = ReadExtractionFrameSection(reader, config);
+                        result.ExtractionItemsOverride.Add(extractionFrame.Name, extractionFrame);
+                        break;
+                    case "link":
+                        var extractionLink = ReadExtractionLinkSection(reader, config);
+                        result.ExtractionItemsOverride.Add(extractionLink.Name, extractionLink);
+                        break;
+                    case "item":
+                        var extractionItem = ReadExtractionItemSection(reader, config);
+                        result.ExtractionItemsOverride.Add(extractionItem.Name, extractionItem);
+                        break;
+                    default:
+                        throw new ArgumentException("Unrecognized element", reader.Name);
+                }
+            }
+
+            return result;
+        }
+
+        #endregion
+
         #region Website Jobs
-        
+
         private static IList<WebsiteJob> ReadWebsiteJobsSection(XmlTextReader reader, WebsiteConfig config)
         {
             var result = new List<WebsiteJob>();
@@ -312,10 +359,10 @@ namespace Rezgar.Crawler.Configuration
 
                         switch (reader.Name)
                         {
-                            case "links":
+                            case "entry":
                                 #region Pages
 
-                                while (!(reader.Name == "links" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+                                while (!(reader.Name == "entry" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
                                 {
                                     if (!reader.IsStartElement())
                                         continue;
@@ -333,12 +380,12 @@ namespace Rezgar.Crawler.Configuration
                                             // NOTE: These are entry links, so they can't have any location to extract items from, only constant values
                                             var extractedLink = new AutoDetectLink(
                                                 extractionLink.Value,
-                                                websiteJob,
+                                                config,
                                                 extractionLink,
                                                 linkExtractedItems
                                             );
-
-                                            websiteJob.EntryCrawlingQueueItems.Add(new CrawlingQueueItem(extractedLink));
+                                            
+                                            websiteJob.EntryLinks.Add(extractedLink);
                                             break;
 
                                         default:
@@ -584,9 +631,14 @@ namespace Rezgar.Crawler.Configuration
                 if (reader.IsStartElement("item"))
                 {
                     var name = reader.GetAttribute("name");
-                    var value = reader.GetAttribute("value");
+                    var valuesSeparator = reader.GetAttribute("values_separator", ",");
 
-                    result[name] = value;
+                    var values = new List<string>();
+                    var valuesString = reader.GetAttribute("values");
+                    if (!string.IsNullOrEmpty(valuesString))
+                        values.AddRange(valuesString.Split(new[] { valuesSeparator }, StringSplitOptions.RemoveEmptyEntries));
+
+                    result.Dictionary[name] = values;
 
                     if (reader.GetAttribute("required", false))
                         result.Required.Add(name);

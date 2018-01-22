@@ -9,6 +9,7 @@ using Rezgar.Crawler.DataExtraction;
 using Rezgar.Crawler.Configuration;
 using Rezgar.Crawler.Download.ResourceContentUnits;
 using Rezgar.Utils.Collections;
+using Rezgar.Crawler.DataExtraction.ExtractionItems;
 
 namespace Rezgar.Crawler.Download.ResourceLinks
 {
@@ -20,31 +21,32 @@ namespace Rezgar.Crawler.Download.ResourceLinks
         /// <summary>
         /// Values, extracted pre Link download
         /// </summary>
-        public readonly CollectionDictionary<string, string> ExtractedItems;
+        public readonly CollectionDictionary<string, string> PreExtractedItems;
+        public IDictionary<string, ExtractionItem> ExtractionItemsOverride;
 
         public DocumentLink
         (
             StringWithDependencies url,
             string httpMethod,
-            WebsiteJob job,
+            WebsiteConfig config,
             bool extractLinks,
             bool extractData,
-            CollectionDictionary<string, string> extractedItems,
 
+            CollectionDictionary<string, string> preExtractedItems = null,
             DocumentLink referrerDocumentLink = null
         ) 
-            : base(url, httpMethod, job)
+            : base(url, httpMethod, config)
         {
             ExtractLinks = extractLinks;
             ExtractData = extractData;
-            ExtractedItems = extractedItems;
+            PreExtractedItems = preExtractedItems;
 
             ReferrerResourceLink = referrerDocumentLink;
         }
         
         public override async Task<IList<ResourceContentUnit>> ProcessWebResponseAsync(WebResponse webResponse)
         {
-            var parsedExtractableDocument = Job.Config
+            var parsedExtractableDocument = Config
                 .ParseExtractableDocumentWebResponse(webResponse, this);
 
             var result = new List<ResourceContentUnit>();

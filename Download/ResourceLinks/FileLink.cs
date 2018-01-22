@@ -8,6 +8,7 @@ using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
 using Rezgar.Crawler.Download.ResourceContentUnits;
 using System.IO;
+using Rezgar.Crawler.Configuration;
 
 namespace Rezgar.Crawler.Download.ResourceLinks
 {
@@ -15,10 +16,10 @@ namespace Rezgar.Crawler.Download.ResourceLinks
     {
         public FileLink(
             StringWithDependencies url,
-            WebsiteJob job,
+            WebsiteConfig config,
             DocumentLink referrerResourceLink
         ) 
-            : base(url, WebRequestMethods.Http.Get, job)
+            : base(url, WebRequestMethods.Http.Get, config)
         {
             ReferrerResourceLink = referrerResourceLink;
         }

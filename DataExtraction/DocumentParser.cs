@@ -32,8 +32,9 @@ namespace Rezgar.Crawler.DataExtraction
             _websiteConfig = websiteConfig;
             _documentLink = documentLink;
 
-            foreach (var kvp in documentLink.ExtractedItems)
-                ExtractedItems.AddValues(kvp.Key, kvp.Value);
+            if (documentLink.PreExtractedItems != null)
+                foreach (var kvp in documentLink.PreExtractedItems)
+                    ExtractedItems.AddValues(kvp.Key, kvp.Value);
         }
         
         protected abstract IEnumerable<(string ExtractedValue, ResponseParserPositionPointer ExtractedValuePosition)> 
@@ -44,7 +45,8 @@ namespace Rezgar.Crawler.DataExtraction
         
         protected void ExtractItems()
         {
-            foreach (var extractionItem in _websiteConfig.ExtractionItems.Values)
+            var extractionItems = _documentLink.ExtractionItemsOverride ?? _websiteConfig.ExtractionItems;
+            foreach (var extractionItem in extractionItems.Values)
             {
                 var extract = false;
                 switch (extractionItem)
@@ -62,7 +64,7 @@ namespace Rezgar.Crawler.DataExtraction
 
                 if (extract)
                 {
-                    ExtractAutoDetect(extractionItem, _websiteConfig.ExtractionItems, ExtractedItems);
+                    ExtractAutoDetect(extractionItem, extractionItems, ExtractedItems);
                 }
             }
         }
@@ -136,7 +138,7 @@ namespace Rezgar.Crawler.DataExtraction
                     }
                     else
                     {
-                        Debug.Assert(_websiteConfig.PredefinedValues.ContainsKey(dependencyName));
+                        Debug.Assert(_websiteConfig.PredefinedValues.Dictionary.ContainsKey(dependencyName));
                     }
                 }
 
@@ -257,21 +259,21 @@ namespace Rezgar.Crawler.DataExtraction
                     }
 
                     var url = linkValue;
-                    var job = _documentLink.Job;
+                    var config = _documentLink.Config;
 
                     ResourceLink resourceLink;
                     switch (extractionLink.Type)
                     {
                         case ExtractionLink.LinkTypes.Document:
-                            resourceLink = new DocumentLink(url, extractionLink.HttpMethod, job, extractionLink.ExtractLinks, extractionLink.ExtractData, linkScopedExtractedItems, _documentLink);
+                            resourceLink = new DocumentLink(url, extractionLink.HttpMethod, config, extractionLink.ExtractLinks, extractionLink.ExtractData, linkScopedExtractedItems, _documentLink);
                             break;
                         case ExtractionLink.LinkTypes.File:
-                            resourceLink = new FileLink(url, job, _documentLink);
+                            resourceLink = new FileLink(url, config, _documentLink);
                             break;
                         case ExtractionLink.LinkTypes.Auto:
                             resourceLink = new AutoDetectLink(
                                 linkValue,
-                                _documentLink.Job,
+                                config,
                                 extractionLink,
                                 linkScopedExtractedItems,
                                 _documentLink

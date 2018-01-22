@@ -1,4 +1,5 @@
-﻿using Rezgar.Crawler.Configuration.WebsiteConfigSections;
+﻿using Rezgar.Crawler.Configuration;
+using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
 using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Utils.Collections;
@@ -17,8 +18,8 @@ namespace Rezgar.Crawler.Download.ResourceLinks
 
         public readonly DocumentLink ReferrerDocumentLink;
 
-        public AutoDetectLink(string url, WebsiteJob job, ExtractionLink extractionLink, CollectionDictionary<string, string> linkExtractedItems, DocumentLink referrerDocumentLink = null)
-            : base(url, extractionLink.HttpMethod, job)
+        public AutoDetectLink(string url, WebsiteConfig config, ExtractionLink extractionLink, CollectionDictionary<string, string> linkExtractedItems, DocumentLink referrerDocumentLink = null)
+            : base(url, extractionLink.HttpMethod, config)
         {
             ExtractionLink = extractionLink;
             LinkExtractedItems = linkExtractedItems;
@@ -34,7 +35,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
                 var pageLink = new DocumentLink(
                     Url,
                     ExtractionLink.HttpMethod,
-                    Job,
+                    Config,
                     ExtractionLink.ExtractLinks,
                     ExtractionLink.ExtractData,
                     LinkExtractedItems,
@@ -47,7 +48,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             {
                 var fileLink = new FileLink(
                     Url,
-                    Job,
+                    Config,
                     ReferrerDocumentLink
                 );
 

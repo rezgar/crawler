@@ -57,10 +57,10 @@ namespace Rezgar.Crawler.DataExtraction
             var resolvedValues = new CollectionDictionary<string>();
             foreach(var dependencyName in DependencyNames)
             {
-                if (predefinedValues.ContainsKey(dependencyName))
+                if (predefinedValues.Dictionary.ContainsKey(dependencyName))
                 {
-                    var dependencyValue = predefinedValues[dependencyName];
-                    resolvedValues.AddValue(dependencyName, dependencyValue);
+                    var dependencyValue = predefinedValues.Dictionary[dependencyName];
+                    resolvedValues.AddValues(dependencyName, dependencyValue);
                 }
                 else if (extractedItems.ContainsKey(dependencyName))
                 {

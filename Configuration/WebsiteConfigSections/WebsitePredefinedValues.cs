@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Utils.Collections;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
         #endregion
 
         internal readonly HashSet<string> Required = new HashSet<string>();
-        private readonly IDictionary<string, string> Dictionary = new Dictionary<string, string>();
+        public readonly CollectionDictionary<string> Dictionary = new CollectionDictionary<string>();
 
         internal bool Validate()
         {
@@ -31,20 +32,5 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 
             return result;
         }
-
-        #region Public methods
-
-        public string this[string name]
-        {
-            get { return Dictionary[name]; }
-            set { Dictionary[name] = value; }
-        }
-
-        public bool ContainsKey(string name)
-        {
-            return Dictionary.ContainsKey(name);
-        }
-
-        #endregion
     }
 }

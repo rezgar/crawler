@@ -15,6 +15,7 @@ using Rezgar.Crawler.Download.ResourceLinks;
 using System.Diagnostics;
 using Rezgar.Crawler.Engine;
 using Rezgar.Utils.Http;
+using Rezgar.Crawler.Configuration;
 
 namespace Rezgar.Crawler
 {
@@ -37,6 +38,8 @@ namespace Rezgar.Crawler
             _crawlingParameters.CancellationTokenSource.Token.Register(() => 
                 crawlingQueue.QueueCancellationTokenSource.Cancel()
             );
+
+            await InitializeAsync(crawlingQueue.CrawlingConfiguration);
 
             var tasksLock = new System.Threading.ReaderWriterLockSlim();
             var tasks = new HashSet<Task>();
@@ -187,10 +190,10 @@ namespace Rezgar.Crawler
         public static async Task<IList<ResourceContentUnit>> CrawlAsync(ResourceLink resourceLink, bool processResponse = true)
         {
             var webRequest = WebRequest.Create(resourceLink.Uri) as HttpWebRequest;
-
+            
             // TODO: Proxy
-
-            resourceLink.Job.Config.CrawlingSettings
+            
+            resourceLink.Config.CrawlingSettings
                 .SetUpWebRequest(webRequest, resourceLink);
 
             return await
@@ -210,6 +213,7 @@ namespace Rezgar.Crawler
                             using (var webResponse = webResponseTask.Result as HttpWebResponse)
                             {
                                 webRequest.FixCookies(webResponse);
+                                resourceLink.Config.CrawlingSettings.Cookies = webResponse.Cookies;
 
                                 httpResultUnit.ResponseUrl = webResponse.ResponseUri.ToString();
                                 httpResultUnit.ContentEncoding = webResponse.ContentEncoding;
@@ -237,6 +241,41 @@ namespace Rezgar.Crawler
 
                         return result;
                     });
+        }
+
+        #endregion
+
+        #region Private
+
+        /// <summary>
+        /// Initialize all active WebsiteConfigs (extract initialization data if any)
+        /// Since we're going to process the general queue, which contains links of all configs
+        /// </summary>
+        private async Task InitializeAsync(CrawlingConfiguration crawlingConfiguration)
+        {
+            var tasks = new List<Task>();
+            foreach (var config in crawlingConfiguration.WebsiteConfigs.Values)
+            {
+                if (config.InitializationDocumentLink != null)
+                {
+                    tasks.Add(
+                        CrawlAsync(config.InitializationDocumentLink)
+                        .ContinueWith(initializationDataTask =>
+                        {
+                            if (initializationDataTask.Status == TaskStatus.RanToCompletion)
+                            {
+                                foreach (var extractedDataUnit in initializationDataTask.Result.OfType<ExtractedDataUnit>())
+                                {
+                                    foreach (var record in extractedDataUnit.ExtractedData)
+                                        config.PredefinedValues.Dictionary[record.Key] = record.Value;
+                                }
+                            }
+                        })
+                    );
+                }
+            }
+
+            await Task.WhenAll(tasks);
         }
 
         #endregion
