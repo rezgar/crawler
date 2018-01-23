@@ -16,10 +16,11 @@ namespace Rezgar.Crawler.Download.ResourceLinks
     {
         public FileLink(
             StringWithDependencies url,
+            IDictionary<string, StringWithDependencies> parameters,
             WebsiteConfig config,
             DocumentLink referrerResourceLink
         ) 
-            : base(url, WebRequestMethods.Http.Get, config)
+            : base(url, WebRequestMethods.Http.Get, parameters, config)
         {
             ReferrerResourceLink = referrerResourceLink;
         }

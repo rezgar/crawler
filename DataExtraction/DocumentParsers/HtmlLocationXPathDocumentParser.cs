@@ -18,21 +18,17 @@ namespace Rezgar.Crawler.DataExtraction.DocumentParsers
         private HtmlDocument _htmlDocument;
         private XPathNavigator _xPathNavigator;
 
-        public HtmlLocationXPathDocumentParser(WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink) : base(websiteConfig, documentLink)
+        public HtmlLocationXPathDocumentParser(WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.Load(webResponse.GetResponseStream(), true);
             _xPathNavigator = _htmlDocument.CreateNavigator();
-
-            ExtractItems();
         }
-        public HtmlLocationXPathDocumentParser(WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink) : base(websiteConfig, documentLink)
+        public HtmlLocationXPathDocumentParser(WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.LoadHtml(documentString);
             _xPathNavigator = _htmlDocument.CreateNavigator();
-
-            ExtractItems();
         }
 
         private static readonly Regex XPathSelectorAttributeRegex = new Regex(@"/@\w+$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);

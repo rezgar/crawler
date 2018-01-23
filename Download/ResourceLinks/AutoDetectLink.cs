@@ -19,7 +19,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
         public readonly DocumentLink ReferrerDocumentLink;
 
         public AutoDetectLink(string url, WebsiteConfig config, ExtractionLink extractionLink, CollectionDictionary<string, string> linkExtractedItems, DocumentLink referrerDocumentLink = null)
-            : base(url, extractionLink.HttpMethod, config)
+            : base(url, extractionLink.HttpMethod, extractionLink.Parameters, config)
         {
             ExtractionLink = extractionLink;
             LinkExtractedItems = linkExtractedItems;
@@ -35,6 +35,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
                 var pageLink = new DocumentLink(
                     Url,
                     ExtractionLink.HttpMethod,
+                    ExtractionLink.Parameters,
                     Config,
                     ExtractionLink.ExtractLinks,
                     ExtractionLink.ExtractData,
@@ -48,6 +49,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             {
                 var fileLink = new FileLink(
                     Url,
+                    ExtractionLink.Parameters,
                     Config,
                     ReferrerDocumentLink
                 );

@@ -18,19 +18,15 @@ namespace Rezgar.Crawler.DataExtraction.DocumentParsers
     {
         private HtmlDocument _htmlDocument;
 
-        public HtmlLocationCSSDocumentParser(WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink) : base(websiteConfig, documentLink)
+        public HtmlLocationCSSDocumentParser(WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.Load(webResponse.GetResponseStream(), true);
-
-            ExtractItems();
         }
-        public HtmlLocationCSSDocumentParser(WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink) : base(websiteConfig, documentLink)
+        public HtmlLocationCSSDocumentParser(WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.LoadHtml(documentString);
-
-            ExtractItems();
         }
 
         protected override IEnumerable<(string ExtractedValue, ResponseParserPositionPointer ExtractedValuePosition)> ExtractItemValuesFromLocation(ExtractionLocation location, ResponseParserPositionPointer? relativeLocationBase = null)

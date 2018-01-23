@@ -293,7 +293,8 @@ namespace Rezgar.Crawler.Configuration
         {
             var result = new DocumentLink(
                 reader.GetAttribute("url"),
-                reader.GetAttribute<string>("http_method", System.Net.WebRequestMethods.Http.Get),
+                reader.GetAttribute<string>("method", System.Net.WebRequestMethods.Http.Get),
+                null,
                 config,
                 false,
                 true
@@ -464,7 +465,7 @@ namespace Rezgar.Crawler.Configuration
             ReadExtractionItemAttributes(extractionLink, reader, config);
             extractionLink.ExtractLinks = reader.GetAttribute("extract_links", extractionLink.ExtractLinks);
             extractionLink.ExtractData = reader.GetAttribute("extract_data", extractionLink.ExtractData);
-            extractionLink.HttpMethod = reader.GetAttribute<string>("http_method", extractionLink.HttpMethod);
+            extractionLink.HttpMethod = reader.GetAttribute<string>("method", extractionLink.HttpMethod);
             extractionLink.Type = reader.GetAttribute("type", ExtractionLink.LinkTypes.Auto);
 
             reader.ProcessChildren((childName, childReader) =>

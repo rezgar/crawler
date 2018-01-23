@@ -23,7 +23,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
         public CultureInfo Culture;
         public TimeZoneInfo TimeZone = TimeZoneInfo.Local;
 
-        public DocumentTypes DocumentType = DocumentTypes.HtmlLocationCSS;
+        public DocumentTypes DocumentType = DocumentTypes.HtmlCSS;
         public Encoding FallBackEncoding;
 
         public Regex UrlUniquePartRegex;
@@ -127,6 +127,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 
             webRequest.Pipelined = true;
             webRequest.KeepAlive = KeepAlive;
+            
             if (webRequest.KeepAlive)
                 webRequest.Headers.Set(HttpRequestHeader.KeepAlive, @"300");
 
@@ -136,17 +137,26 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 
             #region Browser mimicking headers
 
+            webRequest.Host = resourceLink.Uri.Host;
+            
+            var originUriBuilder = new UriBuilder(resourceLink.Uri.Scheme, resourceLink.Uri.Host);
+            if (!resourceLink.Uri.IsDefaultPort)
+                originUriBuilder.Port = resourceLink.Uri.Port;
+
+            webRequest.Headers["Origin"] = originUriBuilder.ToString();
             if (resourceLink.ReferrerResourceLink != null)
                 webRequest.Referer = resourceLink.ReferrerResourceLink.Url;
 
             webRequest.UserAgent = UserAgents.GetRandomElement();
-            //webRequest.Accept = data.HeadersAccept;
 
-            //webRequest.Headers.Set(HttpRequestHeader.AcceptLanguage, data.HeadersLanguage);
+            webRequest.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
+            webRequest.Headers.Set(HttpRequestHeader.AcceptLanguage, "en,ru;q=0.9,ro;q=0.8,es;q=0.7");
             webRequest.Headers.Set(HttpRequestHeader.AcceptCharset, @"utf-8;q=0.7,*;q=0.7"); // ISO-8859-1,
 
             if (!AutoDecompression)
-                webRequest.Headers.Set(HttpRequestHeader.AcceptEncoding, @"gzip, deflate");
+                webRequest.Headers.Set(HttpRequestHeader.AcceptEncoding, @"gzip, deflate, br");
+
+            webRequest.Headers["Upgrade-Insecure-Requests"] = "1";
 
             #endregion
 
@@ -155,6 +165,30 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             //#if DEBUG
             //            webRequest.Proxy = new WebProxy("127.0.0.1:8888");
             //#endif
+
+            #region Parameters
+
+            if (resourceLink.HttpMethod == System.Net.WebRequestMethods.Http.Post)
+            {
+                if (resourceLink.Parameters != null && resourceLink.Parameters.Count > 0)
+                {
+                    var formUrlEncodedContent = new System.Net.Http.FormUrlEncodedContent(
+                        resourceLink.Parameters
+                        .Select(pred => new KeyValuePair<string, string>(pred.Key, pred.Value))
+                    );
+                    var formBytes = formUrlEncodedContent.ReadAsByteArrayAsync().Result;
+
+                    webRequest.ContentType = "application/x-www-form-urlencoded";
+                    webRequest.ContentLength = formBytes.Length;
+
+                    using (var stream = webRequest.GetRequestStream())
+                    {
+                        stream.Write(formBytes, 0, formBytes.Length);
+                    }
+                }
+            }
+
+            #endregion
 
             return webRequest;
         }
@@ -179,8 +213,8 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 
         public enum DocumentTypes
         {
-            HtmlLocationCSS,
-            HtmlLocationXPath,
+            HtmlCSS,
+            HtmlXPath,
             Xml,
             Json
         }
