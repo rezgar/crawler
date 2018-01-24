@@ -161,7 +161,7 @@ namespace Rezgar.Crawler.Configuration
                 {
                     switch (reader.Name)
                     {
-                        case "downloads":
+                        case "download":
                             reader.GetAttribute(ref result.DownloadTimeout, "timeout");
                             reader.GetAttribute(ref result.DownloadDelay, "delay");
                             reader.GetAttribute(ref result.DownloadDelayRandomizationMax, "delay_randomization_max");
@@ -233,6 +233,9 @@ namespace Rezgar.Crawler.Configuration
                                             }
                                         });
                                         break;
+                                    case "headers":
+                                        result.Headers = ReadHttpHeadersSection(childReader).ToDictionary(pred => pred.Key, pred => pred.Value.ToString());
+                                        break;
                                 }
                             });
 
@@ -295,8 +298,9 @@ namespace Rezgar.Crawler.Configuration
                 reader.GetAttribute("url"),
                 reader.GetAttribute<string>("method", System.Net.WebRequestMethods.Http.Get),
                 null,
+                null,
                 config,
-                false,
+                true,
                 true
             );
 
@@ -479,11 +483,29 @@ namespace Rezgar.Crawler.Configuration
                     case "parameters":
                         extractionLink.Parameters = ReadExtractionLinkParametersSection(childReader);
                         break;
+                    case "headers":
+                        extractionLink.Headers = ReadHttpHeadersSection(childReader);
+                        break;
                     case "post_processors":
                         ReadExtractionItemPostProcessors(extractionLink, childReader);
                         break;
                 }
             });
+        }
+
+        private static IDictionary<string, StringWithDependencies> ReadHttpHeadersSection(XmlReader reader)
+        {
+            var result = new Dictionary<string, StringWithDependencies>();
+
+            while (!(reader.Name == "headers" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (reader.IsStartElement("header"))
+                {
+                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
+                }
+            }
+
+            return result;
         }
 
         private static IDictionary<string, StringWithDependencies> ReadExtractionLinkParametersSection(XmlReader reader)
@@ -500,7 +522,7 @@ namespace Rezgar.Crawler.Configuration
 
             return result;
         }
-        
+
         private static ExtractionItem ReadExtractionItemSection(XmlReader reader, WebsiteConfig config)
         {
             var extractionItem = new ExtractionItem();

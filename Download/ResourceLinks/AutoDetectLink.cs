@@ -14,15 +14,15 @@ namespace Rezgar.Crawler.Download.ResourceLinks
     public class AutoDetectLink : ResourceLink
     {
         public readonly ExtractionLink ExtractionLink;
-        public readonly CollectionDictionary<string, string> LinkExtractedItems;
+        public readonly CollectionDictionary<string, string> PreExtractedItems;
 
         public readonly DocumentLink ReferrerDocumentLink;
 
-        public AutoDetectLink(string url, WebsiteConfig config, ExtractionLink extractionLink, CollectionDictionary<string, string> linkExtractedItems, DocumentLink referrerDocumentLink = null)
-            : base(url, extractionLink.HttpMethod, extractionLink.Parameters, config)
+        public AutoDetectLink(string url, WebsiteConfig config, ExtractionLink extractionLink, CollectionDictionary<string, string> preExtractedItems, DocumentLink referrerDocumentLink = null)
+            : base(url, extractionLink.HttpMethod, extractionLink.Parameters, extractionLink.Headers, config)
         {
             ExtractionLink = extractionLink;
-            LinkExtractedItems = linkExtractedItems;
+            PreExtractedItems = preExtractedItems;
             ReferrerDocumentLink = referrerDocumentLink;
         }
 
@@ -36,10 +36,11 @@ namespace Rezgar.Crawler.Download.ResourceLinks
                     Url,
                     ExtractionLink.HttpMethod,
                     ExtractionLink.Parameters,
+                    ExtractionLink.Headers,
                     Config,
                     ExtractionLink.ExtractLinks,
                     ExtractionLink.ExtractData,
-                    LinkExtractedItems,
+                    PreExtractedItems,
                     ReferrerDocumentLink
                 );
 
@@ -50,6 +51,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
                 var fileLink = new FileLink(
                     Url,
                     ExtractionLink.Parameters,
+                    ExtractionLink.Headers,
                     Config,
                     ReferrerDocumentLink
                 );

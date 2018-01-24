@@ -16,6 +16,7 @@ namespace Rezgar.Crawler.Download
     {
         public readonly StringWithDependencies Url;
         public readonly IDictionary<string, StringWithDependencies> Parameters;
+        public readonly IDictionary<string, StringWithDependencies> Headers;
         public readonly string HttpMethod;
         public readonly WebsiteConfig Config;
 
@@ -37,12 +38,13 @@ namespace Rezgar.Crawler.Download
             }
         }
 
-        public ResourceLink(StringWithDependencies url, string httpMethod, IDictionary<string, StringWithDependencies> parameters, WebsiteConfig config)
+        public ResourceLink(StringWithDependencies url, string httpMethod, IDictionary<string, StringWithDependencies> parameters, IDictionary<string, StringWithDependencies> headers, WebsiteConfig config)
         {
             Url = url;
             HttpMethod = httpMethod;
             Config = config;
             Parameters = parameters;
+            Headers = headers;
         }
 
         public abstract Task<IList<ResourceContentUnit>> ProcessWebResponseAsync(WebResponse webResponse);

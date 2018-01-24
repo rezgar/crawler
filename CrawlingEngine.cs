@@ -21,6 +21,12 @@ namespace Rezgar.Crawler
 {
     public class CrawlingEngine : IDisposable
     {
+        static CrawlingEngine()
+        {
+            // If not set, defaults to 2. With 2 active conections to a domain, the next one is cancelled and WebResponse gets randomly disposed with no descriptive exception
+            ServicePointManager.DefaultConnectionLimit = int.MaxValue;
+        }
+
         protected CrawlingParameters _crawlingParameters;
         protected readonly CrawlingEventInterceptorManager _crawlingEventInterceptorManager;
 
@@ -196,8 +202,8 @@ namespace Rezgar.Crawler
             resourceLink.Config.CrawlingSettings
                 .SetUpWebRequest(webRequest, resourceLink);
 
-            return await
-                await webRequest.GetResponseAsync()
+            return await TaskExtensions.Unwrap(
+                    webRequest.GetResponseAsync()
                     .ContinueWith(async webResponseTask =>
                     {
                         var result = new List<ResourceContentUnit>();
@@ -240,7 +246,7 @@ namespace Rezgar.Crawler
                         result.Add(httpResultUnit);
 
                         return result;
-                    });
+                    }));
         }
 
         #endregion
@@ -259,18 +265,31 @@ namespace Rezgar.Crawler
                 if (config.InitializationDocumentLink != null)
                 {
                     tasks.Add(
-                        CrawlAsync(config.InitializationDocumentLink)
-                        .ContinueWith(initializationDataTask =>
-                        {
-                            if (initializationDataTask.Status == TaskStatus.RanToCompletion)
+                        TaskExtensions.Unwrap(
+                            CrawlAsync(config.InitializationDocumentLink)
+                            .ContinueWith(async initializationDataTask =>
                             {
-                                foreach (var extractedDataUnit in initializationDataTask.Result.OfType<ExtractedDataUnit>())
+                                if (initializationDataTask.Status == TaskStatus.RanToCompletion)
                                 {
-                                    foreach (var record in extractedDataUnit.ExtractedData)
-                                        config.PredefinedValues.Dictionary[record.Key] = record.Value;
+                                    foreach (var extractedUnit in initializationDataTask.Result)
+                                    {
+                                        switch (extractedUnit)
+                                        {
+                                            case ExtractedDataUnit extractedDataUnit:
+                                                foreach (var record in extractedDataUnit.ExtractedData)
+                                                    config.PredefinedValues.Dictionary[record.Key] = record.Value;
+                                                break;
+                                            case ExtractedLinksUnit extractedLinkUnit:
+                                                await Task.WhenAll(
+                                                    extractedLinkUnit.ExtractedLinks
+                                                    .Select(link => CrawlAsync(link, false))
+                                                    .ToArray()
+                                                );
+                                                break;
+                                        }
+                                    }
                                 }
-                            }
-                        })
+                            }))
                     );
                 }
             }

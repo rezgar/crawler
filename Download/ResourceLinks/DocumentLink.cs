@@ -29,6 +29,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             StringWithDependencies url,
             string httpMethod,
             IDictionary<string, StringWithDependencies> parameters,
+            IDictionary<string, StringWithDependencies> headers,
             WebsiteConfig config,
             bool extractLinks,
             bool extractData,
@@ -36,7 +37,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             CollectionDictionary<string, string> preExtractedItems = null,
             DocumentLink referrerDocumentLink = null
         ) 
-            : base(url, httpMethod, parameters, config)
+            : base(url, httpMethod, parameters, headers, config)
         {
             ExtractLinks = extractLinks;
             ExtractData = extractData;

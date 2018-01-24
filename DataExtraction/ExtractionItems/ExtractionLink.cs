@@ -12,6 +12,7 @@ namespace Rezgar.Crawler.DataExtraction.ExtractionItems
         public bool ExtractData = true;
         public IDictionary<string, StringWithDependencies> Parameters;
         public string HttpMethod = System.Net.WebRequestMethods.Http.Get;
+        public IDictionary<string, StringWithDependencies> Headers;
         public LinkTypes Type = LinkTypes.Auto;
 
         /// <summary>
@@ -31,8 +32,13 @@ namespace Rezgar.Crawler.DataExtraction.ExtractionItems
                 foreach (var stringWithDependencies in extractionItem.GetStringsWithDependencies())
                     yield return stringWithDependencies;
 
-            foreach (var parameter in Parameters)
-                yield return parameter.Value;
+            if (Parameters != null)
+                foreach (var parameter in Parameters)
+                    yield return parameter.Value;
+
+            if (Headers != null)
+                foreach (var header in Headers)
+                    yield return header.Value;
         }
 
         #region Declarations

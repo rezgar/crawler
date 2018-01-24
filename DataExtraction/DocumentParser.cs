@@ -114,9 +114,11 @@ namespace Rezgar.Crawler.DataExtraction
 
                 // TODO: Download frames inline and store them in ExtractedItems (override initially extracted values)
                 var frameResourceLinks = ExtractedFrames.GetValues(extractionFrame.Name);
-                var frameDownloadTasks = frameResourceLinks.Select(frame => CrawlingEngine.CrawlAsync(frame, false)).ToArray();
-                Task.WhenAll(frameDownloadTasks)
-                    .Wait(); // We're not in async context, so we'll have to hold this thread until we download all the inline downloads required
+                var frameDownloadTasks = frameResourceLinks
+                    .Select(frame => CrawlingEngine.CrawlAsync(frame, false))
+                    .ToArray();
+
+                Task.WaitAll(frameDownloadTasks); // We're not in async context, so we'll have to hold this thread until we download all the inline downloads required
 
                 // Replace previously extracted data for the frame with it's downloaded content
                 ExtractedItems[extractionFrame.Name] =
@@ -194,8 +196,8 @@ namespace Rezgar.Crawler.DataExtraction
                             contextDocumentParser.ExtractedLinks = ExtractedLinks;
                             contextDocumentParser.ExtractedFrames = ExtractedFrames;
 
-                            contextDocumentParser.Parse();
                             contextDocumentParsers.Add(contextDocumentParser);
+                            contextDocumentParser.Parse();
                         }
                     }
 
@@ -257,10 +259,10 @@ namespace Rezgar.Crawler.DataExtraction
                     switch (extractionLink.Type)
                     {
                         case ExtractionLink.LinkTypes.Document:
-                            resourceLink = new DocumentLink(url, extractionLink.HttpMethod, extractionLink.Parameters, config, extractionLink.ExtractLinks, extractionLink.ExtractData, linkScopedExtractedItems, _documentLink);
+                            resourceLink = new DocumentLink(url, extractionLink.HttpMethod, extractionLink.Parameters, extractionLink.Headers, config, extractionLink.ExtractLinks, extractionLink.ExtractData, linkScopedExtractedItems, _documentLink);
                             break;
                         case ExtractionLink.LinkTypes.File:
-                            resourceLink = new FileLink(url, extractionLink.Parameters, config, _documentLink);
+                            resourceLink = new FileLink(url, extractionLink.Parameters, extractionLink.Headers, config, _documentLink);
                             break;
                         case ExtractionLink.LinkTypes.Auto:
                             resourceLink = new AutoDetectLink(

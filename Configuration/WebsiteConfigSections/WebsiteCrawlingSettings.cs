@@ -82,6 +82,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_7; da-dk) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1",
             "Mozilla/5.0 (Windows; U; Windows NT 6.1; tr-TR) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27",
         };
+        public IDictionary<string, string> Headers = new Dictionary<string, string>();
         public bool ValidateDomain = true;
         public TimeSpan DownloadTimeout = TimeSpan.FromMinutes(1);//Settings.Default.DownloadTimeout; //ms
         public int DownloadDelay = -1; //ms
@@ -156,8 +157,6 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             if (!AutoDecompression)
                 webRequest.Headers.Set(HttpRequestHeader.AcceptEncoding, @"gzip, deflate, br");
 
-            webRequest.Headers["Upgrade-Insecure-Requests"] = "1";
-
             #endregion
 
             //webRequest.Proxy = data.WebProxy;
@@ -165,6 +164,20 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             //#if DEBUG
             //            webRequest.Proxy = new WebProxy("127.0.0.1:8888");
             //#endif
+
+            #region Default headers' override 
+            
+            // Set up config-based headers
+            if (resourceLink.Config.CrawlingSettings.Headers != null)
+                foreach (var header in resourceLink.Config.CrawlingSettings.Headers)
+                    webRequest.Headers[header.Key] = header.Value;
+
+            // Override(or add) link-based headers
+            if (resourceLink.Headers != null)
+                foreach (var header in resourceLink.Headers)
+                    webRequest.Headers[header.Key] = header.Value;
+
+            #endregion
 
             #region Parameters
 
