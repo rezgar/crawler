@@ -25,7 +25,7 @@ namespace Rezgar.Crawler.Configuration
         }
 
         public bool Validate()
-        {
+        {   
             var result = true;
             foreach(var websiteConfig in WebsiteConfigs.Values)
             {

@@ -12,6 +12,7 @@ namespace Rezgar.Crawler.DataExtraction.ExtractionItems
         public string Name;
         public StringWithDependencies Value;
         public ExtractionLocation Location;
+        public IList<string> DependsOn;
 
         /// <summary>
         /// Extraction context. 
@@ -55,6 +56,9 @@ namespace Rezgar.Crawler.DataExtraction.ExtractionItems
 
             if (Context != null)
                 yield return ("{" + Context.ContextItemName + "}"); // TODO: Refactor? Artificial StringWithDependencies to trigger resolve of contextitemname
+
+            if (DependsOn != null)
+                yield return string.Join(",", DependsOn.Select(dependency => $"{{{dependency}}}"));
 
             foreach (var postProcessor in PostProcessors)
                 foreach (var stringWithDependencies in postProcessor.GetStringsWithDependencies())

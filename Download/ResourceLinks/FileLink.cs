@@ -14,6 +14,12 @@ namespace Rezgar.Crawler.Download.ResourceLinks
 {
     public class FileLink : ResourceLink
     {
+        public new DocumentLink ReferrerResourceLink
+        {
+            get => base.ReferrerResourceLink as DocumentLink;
+            set => base.ReferrerResourceLink = value;
+        }
+
         public FileLink(
             StringWithDependencies url,
             IDictionary<string, StringWithDependencies> parameters,
@@ -21,15 +27,8 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             WebsiteConfig config,
             DocumentLink referrerResourceLink
         ) 
-            : base(url, WebRequestMethods.Http.Get, parameters, headers, config)
+            : base(url, WebRequestMethods.Http.Get, parameters, headers, config, referrerResourceLink)
         {
-            ReferrerResourceLink = referrerResourceLink;
-        }
-
-        public new DocumentLink ReferrerResourceLink
-        {
-            get => base.ReferrerResourceLink as DocumentLink;
-            set => base.ReferrerResourceLink = value;
         }
 
         public override async Task<IList<ResourceContentUnit>> ProcessWebResponseAsync(WebResponse webResponse)

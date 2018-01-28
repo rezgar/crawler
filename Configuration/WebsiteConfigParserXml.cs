@@ -387,7 +387,8 @@ namespace Rezgar.Crawler.Configuration
                                                 extractionLink.Value,
                                                 config,
                                                 extractionLink,
-                                                linkExtractedItems
+                                                linkExtractedItems,
+                                                websiteJob.Config.InitializationDocumentLink
                                             );
                                             
                                             websiteJob.EntryLinks.Add(extractedLink);
@@ -471,12 +472,13 @@ namespace Rezgar.Crawler.Configuration
             extractionLink.ExtractData = reader.GetAttribute("extract_data", extractionLink.ExtractData);
             extractionLink.HttpMethod = reader.GetAttribute<string>("method", extractionLink.HttpMethod);
             extractionLink.Type = reader.GetAttribute("type", ExtractionLink.LinkTypes.Auto);
+            extractionLink.DependsOn = reader.GetAttribute<string>("depends_on", null)?.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries);
 
             reader.ProcessChildren((childName, childReader) =>
             {
                 switch (childName)
                 {
-                    case "data":
+                    case "predefined_items":
                         extractionLink.IsPredefinedExtractionItemsLocationRelativeToLink = childReader.GetAttribute("relative", extractionLink.IsPredefinedExtractionItemsLocationRelativeToLink);
                         extractionLink.PredefinedExtractionItems = ReadExtractionItemsSection(childReader, config);
                         break;
@@ -548,6 +550,8 @@ namespace Rezgar.Crawler.Configuration
                 reader.GetAttribute("context"),
                 reader.GetAttribute("context_document_type", config.CrawlingSettings.DocumentType)
             );
+
+            extractionItem.DependsOn = reader.GetAttribute<string>("depends_on", null)?.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries);
         }
         private static void ReadExtractionItemPostProcessors(ExtractionItem extractionItem, XmlReader reader)
         {

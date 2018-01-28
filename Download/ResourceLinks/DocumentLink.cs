@@ -37,13 +37,11 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             CollectionDictionary<string, string> preExtractedItems = null,
             DocumentLink referrerDocumentLink = null
         ) 
-            : base(url, httpMethod, parameters, headers, config)
+            : base(url, httpMethod, parameters, headers, config, referrerDocumentLink)
         {
             ExtractLinks = extractLinks;
             ExtractData = extractData;
             PreExtractedItems = preExtractedItems;
-
-            ReferrerResourceLink = referrerDocumentLink;
         }
         
         public override async Task<IList<ResourceContentUnit>> ProcessWebResponseAsync(WebResponse webResponse)

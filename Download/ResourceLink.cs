@@ -2,6 +2,7 @@
 using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
 using Rezgar.Crawler.Download.ResourceContentUnits;
+using Rezgar.Utils.Collections;
 using Rezgar.Utils.Http;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,7 @@ namespace Rezgar.Crawler.Download
         public readonly WebsiteConfig Config;
 
         public ResourceLink ReferrerResourceLink;
+        public string UserAgent;
 
         public Uri Uri
         {
@@ -38,13 +40,15 @@ namespace Rezgar.Crawler.Download
             }
         }
 
-        public ResourceLink(StringWithDependencies url, string httpMethod, IDictionary<string, StringWithDependencies> parameters, IDictionary<string, StringWithDependencies> headers, WebsiteConfig config)
+        public ResourceLink(StringWithDependencies url, string httpMethod, IDictionary<string, StringWithDependencies> parameters, IDictionary<string, StringWithDependencies> headers, WebsiteConfig config, ResourceLink referrerResourceLink)
         {
             Url = url;
             HttpMethod = httpMethod;
             Config = config;
             Parameters = parameters;
             Headers = headers;
+            ReferrerResourceLink = referrerResourceLink;
+            UserAgent = referrerResourceLink?.UserAgent ?? config.CrawlingSettings.UserAgents.GetRandomElement();
         }
 
         public abstract Task<IList<ResourceContentUnit>> ProcessWebResponseAsync(WebResponse webResponse);

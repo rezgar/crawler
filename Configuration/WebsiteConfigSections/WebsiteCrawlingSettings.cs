@@ -148,7 +148,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             if (resourceLink.ReferrerResourceLink != null)
                 webRequest.Referer = resourceLink.ReferrerResourceLink.Url;
 
-            webRequest.UserAgent = UserAgents.GetRandomElement();
+            webRequest.UserAgent = resourceLink.UserAgent ?? UserAgents.GetRandomElement();
 
             webRequest.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
             webRequest.Headers.Set(HttpRequestHeader.AcceptLanguage, "en,ru;q=0.9,ro;q=0.8,es;q=0.7");
@@ -191,7 +191,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
                     );
                     var formBytes = formUrlEncodedContent.ReadAsByteArrayAsync().Result;
 
-                    webRequest.ContentType = "application/x-www-form-urlencoded";
+                    webRequest.ContentType = "application/x-www-form-urlencoded; charset=UTF-8";
                     webRequest.ContentLength = formBytes.Length;
 
                     using (var stream = webRequest.GetRequestStream())
