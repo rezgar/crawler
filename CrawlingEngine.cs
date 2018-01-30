@@ -140,8 +140,18 @@ namespace Rezgar.Crawler
                                                 break;
 
                                             case DownloadedFilesUnit downloadedFileUnit:
+                                                // If download file is a result of redirection,
+                                                // we must either explicitly declare that we're expecting a file, or throw a processing exception
+
+                                                var fileLink = queueItem.ResourceLink as FileLink;
+                                                if (fileLink == null)
+                                                {
+                                                    Trace.TraceError($"ProcessCrawlingQueueAsync: Downloaded file unit. Resource link is of type {queueItem.ResourceLink.GetType().Name}, expecting FileLink. Preventing processing.");
+                                                    break;
+                                                }
+
                                                 if (!await _crawlingEventInterceptorManager.OnFileDownloadedAsync(
-                                                        queueItem.ResourceLink as FileLink,
+                                                        fileLink,
                                                         downloadedFileUnit,
                                                         httpResultUnit
                                                     ))
