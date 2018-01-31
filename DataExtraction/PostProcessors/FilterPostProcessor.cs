@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class FilterPostProcessor : PostProcessorBase
+    public class FilterPostProcessor : PostProcessor
     {
         public readonly StringWithDependencies EqualTo;
         public readonly StringWithDependencies NotEqualTo;

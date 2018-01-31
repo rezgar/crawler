@@ -10,7 +10,7 @@ using Rezgar.Utils.Uri;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class SetUrlParameterPostProcessor : PostProcessorBase
+    public class SetUrlParameterPostProcessor : PostProcessor
     {
         public readonly StringWithDependencies ParameterName;
         public readonly StringWithDependencies Value;

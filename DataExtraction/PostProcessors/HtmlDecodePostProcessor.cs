@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class HtmlDecodePostProcessor : PostProcessorBase
+    public class HtmlDecodePostProcessor : PostProcessor
     {
         public override IEnumerable<string> Execute(string value)
         {

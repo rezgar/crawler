@@ -561,7 +561,7 @@ namespace Rezgar.Crawler.Configuration
             });
         }
 
-        private static PostProcessorBase ReadExtractionItemPostProcessor(XmlReader reader)
+        private static PostProcessor ReadExtractionItemPostProcessor(XmlReader reader)
         {
             switch (reader.Name)
             {
@@ -637,6 +637,11 @@ namespace Rezgar.Crawler.Configuration
                         );
                 case "reformat_date":
                     return new ReformatDatePostProcessor(
+                            reader.GetAttribute("original"),
+                            reader.GetAttribute("target", "s")
+                        );
+                case "reformat_csv":
+                    return new ReformatCsvPostProcessor(
                             reader.GetAttribute("original"),
                             reader.GetAttribute("target", "s")
                         );

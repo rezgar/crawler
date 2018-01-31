@@ -21,7 +21,7 @@ namespace Rezgar.Crawler.DataExtraction.ExtractionItems
         /// </summary>
         public ExtractionContext Context { get; protected set; }
 
-        public IList<PostProcessorBase> PostProcessors = new List<PostProcessorBase>();
+        public IList<PostProcessor> PostProcessors = new List<PostProcessor>();
 
         #region Methods
 

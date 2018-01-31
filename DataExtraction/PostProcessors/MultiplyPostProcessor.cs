@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class MultiplyPostProcessor : PostProcessorBase
+    public class MultiplyPostProcessor : PostProcessor
     {
         public readonly StringWithDependencies MultiplierString;
         public MultiplyPostProcessor(StringWithDependencies multiplier)

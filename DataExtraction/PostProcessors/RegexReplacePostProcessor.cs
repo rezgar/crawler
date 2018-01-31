@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class RegexReplacePostProcessor : PostProcessorBase
+    public class RegexReplacePostProcessor : PostProcessor
     {
         public readonly string RegexPattern;
         public readonly bool CaseSensitive = false;

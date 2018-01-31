@@ -7,7 +7,7 @@ using Rezgar.Utils.Collections;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class Base64DecodePostProcessor : PostProcessorBase
+    public class Base64DecodePostProcessor : PostProcessor
     {
         public override IEnumerable<string> Execute(string value)
         {

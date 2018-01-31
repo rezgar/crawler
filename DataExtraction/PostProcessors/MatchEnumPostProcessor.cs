@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class MatchEnumPostProcessor : PostProcessorBase
+    public class MatchEnumPostProcessor : PostProcessor
     {
         public readonly StringWithDependencies EnumTypeName;
         private readonly Type EnumType;

@@ -7,7 +7,7 @@ using Rezgar.Utils.Collections;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class GetUrlParameterPostProcessor : PostProcessorBase
+    public class GetUrlParameterPostProcessor : PostProcessor
     {
         public readonly StringWithDependencies ParameterName;
 

@@ -8,7 +8,7 @@ using System.Globalization;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class AddPostProcessor : PostProcessorBase
+    public class AddPostProcessor : PostProcessor
     {
         public readonly StringWithDependencies AddendumString;
         public AddPostProcessor(StringWithDependencies addendum)

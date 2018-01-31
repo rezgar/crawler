@@ -8,7 +8,7 @@ using System.Net;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class UrlDecodePostProcessor : PostProcessorBase
+    public class UrlDecodePostProcessor : PostProcessor
     {
         public override IEnumerable<string> Execute(string value)
         {

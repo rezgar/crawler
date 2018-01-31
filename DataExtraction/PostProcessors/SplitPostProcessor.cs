@@ -7,7 +7,7 @@ using Rezgar.Utils.Collections;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class SplitPostProcessor : PostProcessorBase
+    public class SplitPostProcessor : PostProcessor
     {
         public readonly StringWithDependencies Separator;
         public readonly bool IgnoreEmptyEntries;

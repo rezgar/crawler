@@ -67,7 +67,7 @@ namespace Rezgar.Crawler.DataExtraction
                 switch (extractionItem)
                 {
                     case ExtractionFrame extractionFrame:
-                        extract = false; // Don't extract specifically. Only if somebody references it explicitly
+                        extract = _documentLink.ExtractData; // Only extract frames when we have to extract data. We either need frame as content, or as a source for dependent items extraction. 
                         break;
                     case ExtractionLink extractionLink:
                         extract = _documentLink.ExtractLinks;

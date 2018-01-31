@@ -229,7 +229,8 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             HtmlCSS,
             HtmlXPath,
             Xml,
-            Json
+            Json,
+            Text // includes all text-based non-selectable types like CSV etc
         }
     }
 }

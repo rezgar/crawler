@@ -11,7 +11,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
     /// <summary>
     /// TODO: In case if required, migrate code for providing custom parameters
     /// </summary>
-    public class EvalJavaScriptPostProcessor : PostProcessorBase
+    public class EvalJavaScriptPostProcessor : PostProcessor
     {
         public static readonly CustomScriptAction.ActionParam[] EvalParams = new[] { new CustomScriptAction.ActionParam(CustomScriptAction.ActionParamType.StackValue, string.Empty) };
         public static readonly CustomScriptAction EvalAction = new CustomScriptAction("Eval", "javascript", JsEval);

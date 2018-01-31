@@ -7,7 +7,7 @@ using Rezgar.Utils.Collections;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class TakePostProcessor : PostProcessorBase
+    public class TakePostProcessor : PostProcessor
     {
         public readonly StringWithDependencies NumberString;
 

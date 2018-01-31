@@ -8,7 +8,7 @@ using System.Globalization;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class SumPostProcessor : PostProcessorBase
+    public class SumPostProcessor : PostProcessor
     {
         public override IEnumerable<string> Execute(IEnumerable<string> values)
         {

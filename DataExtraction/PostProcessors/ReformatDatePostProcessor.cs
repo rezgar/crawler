@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class ReformatDatePostProcessor : PostProcessorBase
+    public class ReformatDatePostProcessor : PostProcessor
     {
         public string FormatOriginal;
         public string FormatTarget;
