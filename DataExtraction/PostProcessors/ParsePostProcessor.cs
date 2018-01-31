@@ -17,11 +17,11 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
 
         public sealed override IEnumerable<string> Execute(IEnumerable<string> values)
         {
-            return Execute(values.Select(ParseData));
+            return Execute(values.Select(_dataParser.Parse));
         }
         public sealed override IEnumerable<string> Execute(string value)
         {
-            return Execute(ParseData(value));
+            return Execute(_dataParser.Parse(value));
         }
 
         public virtual IEnumerable<string> Execute(IEnumerable<TDataType> values)

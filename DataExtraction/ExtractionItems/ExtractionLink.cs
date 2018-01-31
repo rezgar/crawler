@@ -23,6 +23,9 @@ namespace Rezgar.Crawler.DataExtraction.ExtractionItems
         public IDictionary<string, ExtractionItem> PredefinedExtractionItems = new Dictionary<string, ExtractionItem>();
         public bool IsPredefinedExtractionItemsLocationRelativeToLink = true;
 
+        public override bool PostProcessOnExtraction => false;
+        public virtual bool PostProcessOnDownload => false;
+
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()
         {
             foreach (var stringWithDependencies in base.GetStringsWithDependencies())

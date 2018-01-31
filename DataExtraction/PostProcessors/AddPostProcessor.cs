@@ -5,25 +5,27 @@ using System.Text;
 using System.Threading.Tasks;
 using Rezgar.Utils.Collections;
 using System.Globalization;
+using Rezgar.Crawler.DataExtraction.PostProcessors.ParsePostProcessors;
+using Rezgar.Utils.Parsing.Parsers;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    using ParsePostProcessors;
 
-    public class AddPostProcessor : ParseDecimalPostProcessor
+    public class AddPostProcessor : ParsePostProcessor<decimal?>
     {
         public readonly StringWithDependencies AddendumString;
         public readonly decimal AddendumDecimal;
 
         public AddPostProcessor(StringWithDependencies addendum)
+            : base(new DecimalParser("F"))
         {
             AddendumString = addendum;
             AddendumDecimal = decimal.Parse(AddendumString, CultureInfo.InvariantCulture);
         }
 
-        public override IEnumerable<string> Execute(decimal value)
+        public override IEnumerable<string> Execute(decimal? value)
         {
-            yield return (value + AddendumDecimal).ToString("F", CultureInfo.InvariantCulture);
+            yield return ToString(value ?? 0 + AddendumDecimal);
         }
 
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()

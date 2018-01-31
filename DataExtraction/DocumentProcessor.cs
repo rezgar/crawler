@@ -1,6 +1,5 @@
 ﻿using Rezgar.Crawler.Configuration;
 using Rezgar.Crawler.Configuration.WebsiteConfigSections;
-using Rezgar.Crawler.DataExtraction.DocumentParsers;
 using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Crawler.Download;
 using Rezgar.Crawler.Download.ResourceContentUnits;
@@ -127,7 +126,17 @@ namespace Rezgar.Crawler.DataExtraction
                     frameDownloadTasks
                         .SelectMany(frameDownloadTask => frameDownloadTask.Result)
                         .OfType<ResponseStringUnit>()
-                        .Select(frameResponse => frameResponse.Content)
+                        .Select(frameResponse =>
+                        {
+                            IEnumerable<string> result = new [] { frameResponse.Content };
+                            if (extractionFrame.PostProcessOnDownload)
+                            {
+                                result = PostProcess(result, extractionItem.PostProcessors);
+                            }
+
+                            return result.ToArray();
+                        })
+                        .SelectMany(pred => pred)
                         .ToArray();
             }
         }
@@ -213,18 +222,16 @@ namespace Rezgar.Crawler.DataExtraction
                     );
             }
 
+            // TODO: Reconsider architecture
+            // Links are not post-processed at all and frames are post-processed on download only
+            
             // apply post-processing, if specified
-            foreach (var value in extractedValues)
-            {
-                var valuesBeingProcessed = new[] { value };
-
-                foreach (var postProcessor in extractionItem.PostProcessors)
-                {
-                    valuesBeingProcessed = postProcessor.Execute(valuesBeingProcessed).ToArray();
-                }
-
-                extractedItems.AddValues(extractionItem.Name, valuesBeingProcessed);
-            }
+            extractedItems.AddValues(
+                extractionItem.Name, 
+                extractionItem.PostProcessOnExtraction
+                    ? PostProcess(extractedValues, extractionItem.PostProcessors)
+                    : extractedValues
+            );
         }
         
         protected void ExtractLink(ExtractionLink extractionLink)
@@ -287,6 +294,23 @@ namespace Rezgar.Crawler.DataExtraction
         #endregion
 
         #region Utility
+
+        private IEnumerable<string> PostProcess(IEnumerable<string> values, IList<PostProcessor> postProcessors)
+        {
+            // apply post-processing, if specified
+            foreach (var value in values)
+            {
+                var valuesBeingProcessed = new[] {value};
+
+                foreach (var postProcessor in postProcessors)
+                {
+                    valuesBeingProcessed = postProcessor.Execute(valuesBeingProcessed).ToArray();
+                }
+
+                foreach(var valueProcessed in valuesBeingProcessed)
+                    yield return valueProcessed;
+            }
+        }
 
         private void ExtractDependencies(
             ExtractionItem extractionItem,

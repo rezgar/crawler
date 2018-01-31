@@ -555,10 +555,17 @@ namespace Rezgar.Crawler.Configuration
         }
         private static void ReadExtractionItemPostProcessors(ExtractionItem extractionItem, XmlReader reader)
         {
+            extractionItem.PostProcessors = ReadExtractionItemPostProcessors(reader);
+        }
+        private static IList<PostProcessor> ReadExtractionItemPostProcessors(XmlReader reader)
+        {
+            var result = new List<PostProcessor>();
             reader.ProcessChildren((childName, childReader) =>
             {
-                extractionItem.PostProcessors.Add(ReadExtractionItemPostProcessor(childReader));
+                result.Add(ReadExtractionItemPostProcessor(childReader));
             });
+
+            return result;
         }
 
         private static PostProcessor ReadExtractionItemPostProcessor(XmlReader reader)
@@ -638,12 +645,22 @@ namespace Rezgar.Crawler.Configuration
                 case "reformat_date":
                     return new ReformatDatePostProcessor(
                             reader.GetAttribute("original"),
-                            reader.GetAttribute("target", "s")
+                            reader.GetAttribute<string>("target", "s")
                         );
                 case "reformat_csv":
                     return new ReformatCsvPostProcessor(
-                            reader.GetAttribute("original"),
-                            reader.GetAttribute("target", "s")
+                            reader.ProcessChildren((childName, childReader) =>
+                            {
+                                var name = childReader.GetAttribute("name");
+                                var sourceName = childReader.GetAttribute<string>("source", name);
+                                var postProcessors = ReadExtractionItemPostProcessors(childReader);
+
+                                return new ReformatCsvPostProcessor.CsvColumnTransition(
+                                    name,
+                                    sourceName,
+                                    postProcessors
+                                );
+                            }).ToArray()
                         );
                 default:
                     throw new NotSupportedException();

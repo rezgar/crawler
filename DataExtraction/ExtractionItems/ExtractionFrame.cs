@@ -9,5 +9,6 @@ namespace Rezgar.Crawler.DataExtraction.ExtractionItems
     /// </summary>
     public class ExtractionFrame : ExtractionLink
     {
+        public override bool PostProcessOnDownload => true;
     }
 }
