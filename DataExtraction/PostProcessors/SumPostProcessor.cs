@@ -8,17 +8,20 @@ using System.Globalization;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class SumPostProcessor : PostProcessor
+    using ParsePostProcessors;
+    using Utils.Parsing;
+    using Utils.Parsing.Parsers;
+
+    public class SumPostProcessor : ParsePostProcessor<decimal?>
     {
-        public override IEnumerable<string> Execute(IEnumerable<string> values)
+        public SumPostProcessor() : base(new DecimalParser("F")) { }
+
+        public override IEnumerable<string> Execute(IEnumerable<decimal?> values)
         {
-            yield return 
-                values.Select(value => !string.IsNullOrEmpty(value) ? decimal.Parse(value, CultureInfo.InvariantCulture) : 0)
-                .Sum()
-                .ToString("F");
+            yield return ToString(values.Sum());
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(decimal? value)
         {
             throw new NotSupportedException();
         }

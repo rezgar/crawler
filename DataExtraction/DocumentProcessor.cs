@@ -18,7 +18,9 @@ using static Rezgar.Crawler.Configuration.WebsiteConfigSections.WebsiteCrawlingS
 
 namespace Rezgar.Crawler.DataExtraction
 {
-    public abstract class DocumentParser
+    using DocumentProcessors;
+
+    public abstract class DocumentProcessor
     {
         protected WebsiteConfig _websiteConfig;
         protected DocumentLink _documentLink;
@@ -28,9 +30,9 @@ namespace Rezgar.Crawler.DataExtraction
         public CollectionDictionary<string, ResourceLink> ExtractedFrames = new CollectionDictionary<string, ResourceLink>();
         public CollectionDictionary<string, string> ExtractedItems = new CollectionDictionary<string, string>();
 
-        private CollectionDictionary<string, DocumentParser> ContextItemDocumentParsers = new CollectionDictionary<string, DocumentParser>();
+        private CollectionDictionary<string, DocumentProcessor> ContextItemDocumentParsers = new CollectionDictionary<string, DocumentProcessor>();
 
-        protected DocumentParser(WebsiteConfig websiteConfig, DocumentLink documentLink, DocumentTypes documentType)
+        protected DocumentProcessor(WebsiteConfig websiteConfig, DocumentLink documentLink, DocumentTypes documentType)
         {
             _websiteConfig = websiteConfig;
             _documentLink = documentLink;
@@ -151,7 +153,7 @@ namespace Rezgar.Crawler.DataExtraction
             // values, extracted from page using selector
             if (extractionItem.Location != null)
             {
-                var documentParsers = new List<DocumentParser>();
+                var documentParsers = new List<DocumentProcessor>();
                 // If Context is not specified for item, then item is extracted from base document, without any complexities
                 if (extractionItem.Context == null)
                 {
@@ -166,7 +168,7 @@ namespace Rezgar.Crawler.DataExtraction
                         // Generate context parsers for this ContextItem if they have not been generated before
                         ContextItemDocumentParsers[extractionItem.Context.ContextItemName]
                             = contextDocumentParsers
-                            = new List<DocumentParser>();
+                            = new List<DocumentProcessor>();
 
                         var contextResourceFrames = ExtractedFrames[extractionItem.Context.ContextItemName];
                         var contextDocumentLinks = contextResourceFrames.OfType<DocumentLink>().ToArray();
@@ -351,14 +353,14 @@ namespace Rezgar.Crawler.DataExtraction
 
     public static class DocumentParserExtensions
     {
-        public static DocumentParser CreateDocumentStringParser(this WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink, DocumentTypes documentType)
+        public static DocumentProcessor CreateDocumentStringParser(this WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink, DocumentTypes documentType)
         {
             switch (documentType)
             {
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS:
-                    return new HtmlLocationCSSDocumentParser(websiteConfig, documentString, documentLink);
+                    return new HtmlLocationCssDocumentProcessor(websiteConfig, documentString, documentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath:
-                    return new HtmlLocationXPathDocumentParser(websiteConfig, documentString, documentLink);
+                    return new HtmlLocationXPathDocumentProcessor(websiteConfig, documentString, documentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Xml:
                     throw new NotImplementedException();
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Json:
@@ -368,14 +370,14 @@ namespace Rezgar.Crawler.DataExtraction
                     throw new NotSupportedException();
             }
         }
-        public static DocumentParser CreateWebResponseParser(this WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink)
+        public static DocumentProcessor CreateWebResponseParser(this WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink)
         {
             switch (websiteConfig.CrawlingSettings.DocumentType)
             {
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS:
-                    return new HtmlLocationCSSDocumentParser(websiteConfig, webResponse, documentLink);
+                    return new HtmlLocationCssDocumentProcessor(websiteConfig, webResponse, documentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath:
-                    return new HtmlLocationXPathDocumentParser(websiteConfig, webResponse, documentLink);
+                    return new HtmlLocationXPathDocumentProcessor(websiteConfig, webResponse, documentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Xml:
                     throw new NotImplementedException();
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Json:

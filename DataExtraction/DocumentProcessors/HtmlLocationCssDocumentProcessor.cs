@@ -3,70 +3,60 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
-using Rezgar.Utils.Collections;
-using HtmlAgilityPack;
-using Rezgar.Crawler.Configuration;
 using System.Xml.XPath;
+using HtmlAgilityPack;
+using HtmlAgilityPack.CssSelectors.NetCore;
+using Rezgar.Crawler.Configuration;
 using Rezgar.Crawler.Download.ResourceLinks;
-using System.Text.RegularExpressions;
 
-namespace Rezgar.Crawler.DataExtraction.DocumentParsers
+namespace Rezgar.Crawler.DataExtraction.DocumentProcessors
 {
-    public class HtmlLocationXPathDocumentParser : DocumentParser
+    public class HtmlLocationCssDocumentProcessor : DocumentProcessor
     {
-        private HtmlDocument _htmlDocument;
-        private XPathNavigator _xPathNavigator;
+        private readonly HtmlDocument _htmlDocument;
 
-        public HtmlLocationXPathDocumentParser(WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath)
+        public HtmlLocationCssDocumentProcessor(WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.Load(webResponse.GetResponseStream(), true);
-            _xPathNavigator = _htmlDocument.CreateNavigator();
         }
-        public HtmlLocationXPathDocumentParser(WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath)
+        public HtmlLocationCssDocumentProcessor(WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.LoadHtml(documentString);
-            _xPathNavigator = _htmlDocument.CreateNavigator();
         }
 
-        private static readonly Regex XPathSelectorAttributeRegex = new Regex(@"/@\w+$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
         protected override IEnumerable<(string ExtractedValue, ResponseParserPositionPointer ExtractedValuePosition)> ExtractItemValuesFromLocation(ExtractionLocation location, ResponseParserPositionPointer? relativeLocationBase = null)
         {
-            var xPathNavigator = _xPathNavigator;
-
+            var selector = location.Selector;
             if (relativeLocationBase != null)
             {
-                var nodeSelector = XPathSelectorAttributeRegex.Replace(relativeLocationBase.Value.Location.Selector, string.Empty);
-                xPathNavigator = _xPathNavigator.Select("(" + nodeSelector + ")[" + (relativeLocationBase.Value.ElementIndex + 1) + "]")
-                    .Cast<XPathNavigator>()
-                    .Single();
+                selector = $"{relativeLocationBase.Value.Location.Selector}[{relativeLocationBase.Value.ElementIndex + 1}] {location.Selector}";
             }
 
             int extractedValueIndex = 0;
-            foreach (var value in xPathNavigator.Select(location.Selector)
-                                        .Cast<HtmlNodeNavigator>()
-                                        .Select(nav => GetNodeValue(nav, location.LocationType, location.IncludeChildNodes))
+            foreach (var value in _htmlDocument.QuerySelectorAll(selector)
+                                    .Select(node => GetNodeValue(node, location.LocationType, location.IncludeChildNodes))
                     )
             {
                 yield return (value?.Trim(), new ResponseParserPositionPointer(location, extractedValueIndex++));
             }
         }
 
-        private string GetNodeValue(HtmlNodeNavigator nav, ExtractionLocation.ExtractionLocationTypes locationType, bool includeChildNodes)
+        private string GetNodeValue(HtmlNode node, ExtractionLocation.ExtractionLocationTypes locationType, bool includeChildNodes)
         {
+            var nav = node.CreateNavigator();
             if (nav.NodeType == XPathNodeType.Attribute)
                 return nav.Value;
-
-            switch(locationType)
+            
+            switch (locationType)
             {
                 case ExtractionLocation.ExtractionLocationTypes.OuterHtml:
-                    return nav.CurrentNode.OuterHtml;
+                    return nav.OuterXml;
                 case ExtractionLocation.ExtractionLocationTypes.InnerHtml:
-                    return nav.CurrentNode.InnerHtml;
+                    return nav.InnerXml;
                 case ExtractionLocation.ExtractionLocationTypes.InnerText:
-                    return GetNodeInnerText(nav.CurrentNode, includeChildNodes);
+                    return GetNodeInnerText(node, includeChildNodes);
                 default:
                     throw new NotSupportedException();
             }
@@ -83,7 +73,10 @@ namespace Rezgar.Crawler.DataExtraction.DocumentParsers
 
                 case HtmlNodeType.Element:
                     if (!node.HasChildNodes)
-                        return string.Empty;
+                        return node.GetAttributeValue("value", 
+                                    node.GetAttributeValue("src",
+                                        node.GetAttributeValue("href",
+                                        string.Empty)));
 
                     #region Get inner elements text
                     var valueBuilder = new StringBuilder();

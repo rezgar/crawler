@@ -8,20 +8,22 @@ using System.Globalization;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class AddPostProcessor : PostProcessor
+    using ParsePostProcessors;
+
+    public class AddPostProcessor : ParseDecimalPostProcessor
     {
         public readonly StringWithDependencies AddendumString;
+        public readonly decimal AddendumDecimal;
+
         public AddPostProcessor(StringWithDependencies addendum)
         {
             AddendumString = addendum;
+            AddendumDecimal = decimal.Parse(AddendumString, CultureInfo.InvariantCulture);
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(decimal value)
         {
-            var addendumDecimal = decimal.Parse(AddendumString, CultureInfo.InvariantCulture);
-            var valueDecimal = decimal.Parse(value, CultureInfo.InvariantCulture);
-
-            yield return (valueDecimal + addendumDecimal).ToString("F", CultureInfo.InvariantCulture);
+            yield return (value + AddendumDecimal).ToString("F", CultureInfo.InvariantCulture);
         }
 
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()

@@ -7,26 +7,16 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
-    public class ReformatDatePostProcessor : PostProcessor
+    using ParsePostProcessors;
+    using Utils.Parsing;
+    using Utils.Parsing.Parsers;
+
+    public class ReformatDatePostProcessor : ParsePostProcessor<DateTime?>
     {
-        public string FormatOriginal;
-        public string FormatTarget;
-
-        public ReformatDatePostProcessor(string formatOriginal, string formatTarget)
+        public ReformatDatePostProcessor(string dateTimeFormatOriginal, string dateTimeFormatTarget)
+            : base(new DateTimeParser(dateTimeFormatOriginal, dateTimeFormatTarget))
         {
-            FormatOriginal = formatOriginal;
-            FormatTarget = formatTarget;
-        }
 
-        public override IEnumerable<string> Execute(string value)
-        {
-            DateTime result;
-            
-            if ((FormatOriginal != null && DateTime.TryParseExact(value, FormatOriginal, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
-                || (FormatOriginal == null && DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out result)))
-            {
-                yield return result.ToString(FormatTarget, CultureInfo.InvariantCulture);
-            }
         }
     }
 }
