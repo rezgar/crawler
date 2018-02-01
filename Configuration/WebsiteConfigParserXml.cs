@@ -653,11 +653,13 @@ namespace Rezgar.Crawler.Configuration
                             reader.ProcessChildren((childName, childReader) =>
                             {
                                 var name = childReader.GetAttribute("name");
-                                var sourceName = childReader.GetAttribute<string>("source", name);
+                                var value = childReader.GetAttribute("value");
+                                var sourceName = childReader.GetAttribute("source");
                                 var postProcessors = ReadExtractionItemPostProcessors(childReader);
 
                                 return new ReformatCsvPostProcessor.CsvColumnTransition(
                                     name,
+                                    value,
                                     sourceName,
                                     postProcessors
                                 );
