@@ -7,3 +7,4 @@ packages
 !obj/project.assets.json
 .vs
 .vscode
+.cr
