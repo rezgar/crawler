@@ -649,6 +649,7 @@ namespace Rezgar.Crawler.Configuration
                         );
                 case "reformat_csv":
                     return new ReformatCsvPostProcessor(
+                            reader.GetAttribute<string>("output_delimiter", ","),
                             reader.ProcessChildren((childName, childReader) =>
                             {
                                 var name = childReader.GetAttribute("name");

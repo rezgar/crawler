@@ -8,15 +8,19 @@ using Rezgar.Crawler.DataExtraction.PostProcessors.ParsePostProcessors;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
+    using CsvHelper.Configuration;
 
     public class ReformatCsvPostProcessor : ParseCsvPostProcessor
     {
+        private readonly string _outputDelimiter = ",";
         private readonly IList<CsvColumnTransition> _columnTransitions;
 
         public ReformatCsvPostProcessor(
+            string outputDelimiter,
             IList<CsvColumnTransition> columnTransitions
         )
         {
+            _outputDelimiter = outputDelimiter;
             _columnTransitions = columnTransitions;
         }
 
@@ -28,7 +32,10 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
 
             using (var stringWriter = new StringWriter(resultBuilder))
             {
-                using (var writer = new CsvWriter(stringWriter))
+                using (var writer = new CsvWriter(stringWriter, new Configuration
+                {
+                    Delimiter = _outputDelimiter
+                }))
                 {
                     foreach (var column in _columnTransitions.Select(transition => transition.Name))
                         writer.WriteField(column);
@@ -47,7 +54,8 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
                                 sourceColumnValue = postProcessor.Execute(sourceColumnValue).SingleOrDefault();
                             }
 
-                            writer.WriteField(sourceColumnValue);
+                            if (sourceColumnValue != null)
+                                writer.WriteField(sourceColumnValue);
                         }
                     }
                 }
