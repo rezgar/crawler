@@ -52,11 +52,19 @@ namespace Rezgar.Crawler.Configuration
                         break;
 
                     case "initialization":
-                        config.InitializationDocumentLink = ReadInitializationDocumentSection(reader, config);
-                            break;
+                        config.InitializationDocumentLink = ReadInitializationDocumentSection(reader, config, null);
+                        break;
+
+                    case "entry":
+                        config.EntryLinks = ReadEntryLinksSection(reader, config, null);
+                        break;
 
                     case "jobs":
                         var websiteJobs = ReadWebsiteJobsSection(reader, config);
+
+                        // Jobs are optional. Crawling engine does not require a link to be tied to a job.
+                        //if (websiteJobs.Count == 0)
+                        //    websiteJobs.Add(new WebsiteJob(config));
 
                         foreach (var job in websiteJobs)
                         {
@@ -66,6 +74,7 @@ namespace Rezgar.Crawler.Configuration
                             job.Config = config;
                             config.JobsByName.Add(job.Name, job);
                         }
+                        
                         break;
 
                     case "extraction":
@@ -292,7 +301,7 @@ namespace Rezgar.Crawler.Configuration
 
         #region Initialization Settings
 
-        private static DocumentLink ReadInitializationDocumentSection(XmlReader reader, WebsiteConfig config)
+        private static DocumentLink ReadInitializationDocumentSection(XmlReader reader, WebsiteConfig config, WebsiteJob job)
         {
             var result = new DocumentLink(
                 reader.GetAttribute("url"),
@@ -300,6 +309,7 @@ namespace Rezgar.Crawler.Configuration
                 null,
                 null,
                 config,
+                job,
                 true,
                 true
             );
@@ -344,9 +354,9 @@ namespace Rezgar.Crawler.Configuration
             {
                 if (reader.IsStartElement("job"))
                 {
-                    var websiteJob = new WebsiteJob(config);
+                    var job = new WebsiteJob(config);
 
-                    websiteJob.Name = reader.GetAttribute("name") ?? "default";
+                    job.Name = reader.GetAttribute<string>("name", job.Name);
                     //reader.GetAttribute(ref websiteJob.Id, "id");
 
                     //var domain = reader.GetAttribute("domain");
@@ -364,42 +374,14 @@ namespace Rezgar.Crawler.Configuration
 
                         switch (reader.Name)
                         {
+                            case "initialization":
+                                job.InitializationDocumentLink = ReadInitializationDocumentSection(reader, config, job);
+                                break;
                             case "entry":
-                                #region Pages
-
-                                while (!(reader.Name == "entry" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
-                                {
-                                    if (!reader.IsStartElement())
-                                        continue;
-
-                                    switch (reader.Name)
-                                    {
-                                        case "link":
-                                            var extractionLink = ReadExtractionLinkSection(reader, config);
-                                            var linkExtractedItems = new CollectionDictionary<string, string>();
-                                            foreach (var extractionItem in extractionLink.PredefinedExtractionItems.Values)
-                                            {
-                                                linkExtractedItems.AddValue(extractionItem.Name, extractionItem.Value);
-                                            }
-
-                                            // NOTE: These are entry links, so they can't have any location to extract items from, only constant values
-                                            var extractedLink = new AutoDetectLink(
-                                                extractionLink.Value,
-                                                config,
-                                                extractionLink,
-                                                linkExtractedItems,
-                                                websiteJob.Config.InitializationDocumentLink
-                                            );
-                                            
-                                            websiteJob.EntryLinks.Add(extractedLink);
-                                            break;
-
-                                        default:
-                                            throw new ArgumentException("Unrecognized element", reader.Name);
-                                    }
-                                }
-
-                                #endregion
+                                job.EntryLinks = ReadEntryLinksSection(reader, config, job);
+                                break;
+                            case "dictionary":
+                                job.PredefinedValues = ReadPredefinedValuesSection(reader, config);
                                 break;
 
                             default:
@@ -407,7 +389,7 @@ namespace Rezgar.Crawler.Configuration
                         }
                     }
 
-                    result.Add(websiteJob);
+                    result.Add(job);
                 }
             }
 
@@ -443,82 +425,6 @@ namespace Rezgar.Crawler.Configuration
                         break;
                     default:
                         throw new ArgumentException("Unrecognized element", reader.Name);
-                }
-            }
-
-            return result;
-        }
-
-        private static ExtractionFrame ReadExtractionFrameSection(XmlReader reader, WebsiteConfig config)
-        {
-            var extractionFrame = new ExtractionFrame();
-            ReadExtractionLinkSection(reader, config, extractionFrame);
-
-            extractionFrame.Type = ExtractionLink.LinkTypes.Document;
-
-            return extractionFrame;
-        }
-        private static ExtractionLink ReadExtractionLinkSection(XmlReader reader, WebsiteConfig config)
-        {
-            var extractionLink = new ExtractionLink();
-            ReadExtractionLinkSection(reader, config, extractionLink);
-
-            return extractionLink;
-        }
-        private static void ReadExtractionLinkSection(XmlReader reader, WebsiteConfig config, ExtractionLink extractionLink)
-        {
-            ReadExtractionItemAttributes(extractionLink, reader, config);
-            extractionLink.ExtractLinks = reader.GetAttribute("extract_links", extractionLink.ExtractLinks);
-            extractionLink.ExtractData = reader.GetAttribute("extract_data", extractionLink.ExtractData);
-            extractionLink.HttpMethod = reader.GetAttribute<string>("method", extractionLink.HttpMethod);
-            extractionLink.Type = reader.GetAttribute("type", ExtractionLink.LinkTypes.Auto);
-            extractionLink.DependsOn = reader.GetAttribute<string>("depends_on", null)?.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries);
-
-            reader.ProcessChildren((childName, childReader) =>
-            {
-                switch (childName)
-                {
-                    case "predefined_items":
-                        extractionLink.IsPredefinedExtractionItemsLocationRelativeToLink = childReader.GetAttribute("relative", extractionLink.IsPredefinedExtractionItemsLocationRelativeToLink);
-                        extractionLink.PredefinedExtractionItems = ReadExtractionItemsSection(childReader, config);
-                        break;
-                    case "parameters":
-                        extractionLink.Parameters = ReadExtractionLinkParametersSection(childReader);
-                        break;
-                    case "headers":
-                        extractionLink.Headers = ReadHttpHeadersSection(childReader);
-                        break;
-                    case "post_processors":
-                        ReadExtractionItemPostProcessors(extractionLink, childReader);
-                        break;
-                }
-            });
-        }
-
-        private static IDictionary<string, StringWithDependencies> ReadHttpHeadersSection(XmlReader reader)
-        {
-            var result = new Dictionary<string, StringWithDependencies>();
-
-            while (!(reader.Name == "headers" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
-            {
-                if (reader.IsStartElement("header"))
-                {
-                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
-                }
-            }
-
-            return result;
-        }
-
-        private static IDictionary<string, StringWithDependencies> ReadExtractionLinkParametersSection(XmlReader reader)
-        {
-            var result = new Dictionary<string, StringWithDependencies>();
-
-            while (!(reader.Name == "parameters" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
-            {
-                if (reader.IsStartElement("parameter"))
-                {
-                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
                 }
             }
 
@@ -672,11 +578,130 @@ namespace Rezgar.Crawler.Configuration
 
         #endregion
 
-        #region Dictionary
-        
-        private static WebsitePredefinedValues ReadPredefinedValuesSection(XmlReader reader, WebsiteConfig config)
+        #region Extraction links & frames
+
+        private static ExtractionFrame ReadExtractionFrameSection(XmlReader reader, WebsiteConfig config)
         {
-            var result = new WebsitePredefinedValues();
+            var extractionFrame = new ExtractionFrame();
+            ReadExtractionLinkSection(reader, config, extractionFrame);
+
+            extractionFrame.Type = ExtractionLink.LinkTypes.Document;
+
+            return extractionFrame;
+        }
+        private static ExtractionLink ReadExtractionLinkSection(XmlReader reader, WebsiteConfig config)
+        {
+            var extractionLink = new ExtractionLink();
+            ReadExtractionLinkSection(reader, config, extractionLink);
+
+            return extractionLink;
+        }
+        private static void ReadExtractionLinkSection(XmlReader reader, WebsiteConfig config, ExtractionLink extractionLink)
+        {
+            ReadExtractionItemAttributes(extractionLink, reader, config);
+            extractionLink.ExtractLinks = reader.GetAttribute("extract_links", extractionLink.ExtractLinks);
+            extractionLink.ExtractData = reader.GetAttribute("extract_data", extractionLink.ExtractData);
+            extractionLink.HttpMethod = reader.GetAttribute<string>("method", extractionLink.HttpMethod);
+            extractionLink.Type = reader.GetAttribute("type", ExtractionLink.LinkTypes.Auto);
+            extractionLink.DependsOn = reader.GetAttribute<string>("depends_on", null)?.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries);
+
+            reader.ProcessChildren((childName, childReader) =>
+            {
+                switch (childName)
+                {
+                    case "predefined_items":
+                        extractionLink.IsPredefinedExtractionItemsLocationRelativeToLink = childReader.GetAttribute("relative", extractionLink.IsPredefinedExtractionItemsLocationRelativeToLink);
+                        extractionLink.PredefinedExtractionItems = ReadExtractionItemsSection(childReader, config);
+                        break;
+                    case "parameters":
+                        extractionLink.Parameters = ReadExtractionLinkParametersSection(childReader);
+                        break;
+                    case "headers":
+                        extractionLink.Headers = ReadHttpHeadersSection(childReader);
+                        break;
+                    case "post_processors":
+                        ReadExtractionItemPostProcessors(extractionLink, childReader);
+                        break;
+                }
+            });
+        }
+
+        private static IDictionary<string, StringWithDependencies> ReadExtractionLinkParametersSection(XmlReader reader)
+        {
+            var result = new Dictionary<string, StringWithDependencies>();
+
+            while (!(reader.Name == "parameters" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (reader.IsStartElement("parameter"))
+                {
+                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
+                }
+            }
+
+            return result;
+        }
+
+        private static IList<ResourceLink> ReadEntryLinksSection(XmlReader reader, WebsiteConfig config, WebsiteJob job)
+        {
+            var result = new List<ResourceLink>();
+            while (!(reader.Name == "entry" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (!reader.IsStartElement())
+                    continue;
+
+                switch (reader.Name)
+                {
+                    case "link":
+                        var extractionLink = ReadExtractionLinkSection(reader, config);
+                        var linkExtractedItems = new CollectionDictionary<string, string>();
+                        foreach (var extractionItem in extractionLink.PredefinedExtractionItems.Values)
+                        {
+                            linkExtractedItems.AddValue(extractionItem.Name, extractionItem.Value);
+                        }
+
+                        // NOTE: These are entry links, so they can't have any location to extract items from, only constant values
+                        var extractedLink = new AutoDetectLink(
+                            extractionLink.Value,
+                            config,
+                            job,
+                            extractionLink,
+                            linkExtractedItems,
+                            config.InitializationDocumentLink
+                        );
+
+                        result.Add(extractedLink);
+                        break;
+
+                    default:
+                        throw new ArgumentException("Unrecognized element", reader.Name);
+                }
+            }
+
+            return result;
+        }
+
+        #endregion
+
+        private static IDictionary<string, StringWithDependencies> ReadHttpHeadersSection(XmlReader reader)
+        {
+            var result = new Dictionary<string, StringWithDependencies>();
+
+            while (!(reader.Name == "headers" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (reader.IsStartElement("header"))
+                {
+                    result.Add(reader.GetAttribute("name"), reader.GetAttribute("value"));
+                }
+            }
+
+            return result;
+        }
+
+        #region Dictionary
+
+        private static CrawlingPredefinedValues ReadPredefinedValuesSection(XmlReader reader, WebsiteConfig config)
+        {
+            var result = new CrawlingPredefinedValues();
 
             while (!(reader.Name == "dictionary" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
             {

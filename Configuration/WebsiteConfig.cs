@@ -1,5 +1,6 @@
 ﻿using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction.ExtractionItems;
+using Rezgar.Crawler.Download;
 using Rezgar.Crawler.Download.ResourceLinks;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,15 +26,14 @@ namespace Rezgar.Crawler.Configuration
             get => JobsByName.Values;
         }
 
-        internal WebsitePredefinedValues PredefinedValues = new WebsitePredefinedValues();
-
+        internal CrawlingPredefinedValues PredefinedValues = new CrawlingPredefinedValues();
+        internal IList<ResourceLink> EntryLinks = new List<ResourceLink>();
         /// <summary>
         /// Link (with items) extracted once per Config execution. 
         /// Used to extract initialization data for PredefinedValues, set session info, login user etc.
         /// </summary>
-        public DocumentLink InitializationDocumentLink;
-
-        public IDictionary<string, ExtractionItem> ExtractionItems = new Dictionary<string, ExtractionItem>();
+        internal DocumentLink InitializationDocumentLink;
+        internal IDictionary<string, ExtractionItem> ExtractionItems = new Dictionary<string, ExtractionItem>();
 
         #endregion
 

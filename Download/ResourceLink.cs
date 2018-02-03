@@ -20,6 +20,7 @@ namespace Rezgar.Crawler.Download
         public readonly IDictionary<string, StringWithDependencies> Headers;
         public readonly string HttpMethod;
         public readonly WebsiteConfig Config;
+        public readonly WebsiteJob Job;
 
         public ResourceLink ReferrerResourceLink;
         public string UserAgent;
@@ -40,11 +41,12 @@ namespace Rezgar.Crawler.Download
             }
         }
 
-        public ResourceLink(StringWithDependencies url, string httpMethod, IDictionary<string, StringWithDependencies> parameters, IDictionary<string, StringWithDependencies> headers, WebsiteConfig config, ResourceLink referrerResourceLink)
+        public ResourceLink(StringWithDependencies url, string httpMethod, IDictionary<string, StringWithDependencies> parameters, IDictionary<string, StringWithDependencies> headers, WebsiteConfig config, WebsiteJob job, ResourceLink referrerResourceLink)
         {
             Url = url;
             HttpMethod = httpMethod;
             Config = config;
+            Job = job;
             Parameters = parameters;
             Headers = headers;
             ReferrerResourceLink = referrerResourceLink;

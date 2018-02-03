@@ -31,13 +31,14 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             IDictionary<string, StringWithDependencies> parameters,
             IDictionary<string, StringWithDependencies> headers,
             WebsiteConfig config,
+            WebsiteJob job,
             bool extractLinks,
             bool extractData,
 
             CollectionDictionary<string, string> preExtractedItems = null,
             DocumentLink referrerDocumentLink = null
         ) 
-            : base(url, httpMethod, parameters, headers, config, referrerDocumentLink)
+            : base(url, httpMethod, parameters, headers, config, job, referrerDocumentLink)
         {
             ExtractLinks = extractLinks;
             ExtractData = extractData;

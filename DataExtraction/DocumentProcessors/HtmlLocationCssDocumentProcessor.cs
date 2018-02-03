@@ -7,6 +7,7 @@ using System.Xml.XPath;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 using Rezgar.Crawler.Configuration;
+using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.Download.ResourceLinks;
 
 namespace Rezgar.Crawler.DataExtraction.DocumentProcessors
@@ -15,12 +16,12 @@ namespace Rezgar.Crawler.DataExtraction.DocumentProcessors
     {
         private readonly HtmlDocument _htmlDocument;
 
-        public HtmlLocationCssDocumentProcessor(WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS)
+        public HtmlLocationCssDocumentProcessor(WebResponse webResponse, DocumentLink documentLink) : base(documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.Load(webResponse.GetResponseStream(), true);
         }
-        public HtmlLocationCssDocumentProcessor(WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS)
+        public HtmlLocationCssDocumentProcessor(string documentString, DocumentLink documentLink) : base(documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.LoadHtml(documentString);

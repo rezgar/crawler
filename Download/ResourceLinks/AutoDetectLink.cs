@@ -22,8 +22,8 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             set => base.ReferrerResourceLink = value;
         }
 
-        public AutoDetectLink(string url, WebsiteConfig config, ExtractionLink extractionLink, CollectionDictionary<string, string> preExtractedItems, DocumentLink referrerDocumentLink = null)
-            : base(url, extractionLink.HttpMethod, extractionLink.Parameters, extractionLink.Headers, config, referrerDocumentLink)
+        public AutoDetectLink(string url, WebsiteConfig config, WebsiteJob job, ExtractionLink extractionLink, CollectionDictionary<string, string> preExtractedItems, DocumentLink referrerDocumentLink = null)
+            : base(url, extractionLink.HttpMethod, extractionLink.Parameters, extractionLink.Headers, config, job, referrerDocumentLink)
         {
             ExtractionLink = extractionLink;
             PreExtractedItems = preExtractedItems;
@@ -41,6 +41,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
                     ExtractionLink.Parameters,
                     ExtractionLink.Headers,
                     Config,
+                    Job,
                     ExtractionLink.ExtractLinks,
                     ExtractionLink.ExtractData,
                     PreExtractedItems,
@@ -56,6 +57,7 @@ namespace Rezgar.Crawler.Download.ResourceLinks
                     ExtractionLink.Parameters,
                     ExtractionLink.Headers,
                     Config,
+                    Job,
                     ReferrerResourceLink
                 );
 

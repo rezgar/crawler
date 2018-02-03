@@ -21,7 +21,6 @@ namespace Rezgar.Crawler.DataExtraction
 
     public abstract class DocumentProcessor
     {
-        protected WebsiteConfig _websiteConfig;
         protected DocumentLink _documentLink;
         protected DocumentTypes _documentType;
 
@@ -31,9 +30,8 @@ namespace Rezgar.Crawler.DataExtraction
 
         private CollectionDictionary<string, DocumentProcessor> ContextItemDocumentParsers = new CollectionDictionary<string, DocumentProcessor>();
 
-        protected DocumentProcessor(WebsiteConfig websiteConfig, DocumentLink documentLink, DocumentTypes documentType)
+        protected DocumentProcessor(DocumentLink documentLink, DocumentTypes documentType)
         {
-            _websiteConfig = websiteConfig;
             _documentLink = documentLink;
             _documentType = documentType;
 
@@ -61,7 +59,7 @@ namespace Rezgar.Crawler.DataExtraction
         
         protected void ExtractItems()
         {
-            var extractionItems = _documentLink.ExtractionItemsOverride ?? _websiteConfig.ExtractionItems;
+            var extractionItems = _documentLink.ExtractionItemsOverride ?? _documentLink.Config.ExtractionItems;
             foreach (var extractionItem in extractionItems.Values)
             {
                 var extract = false;
@@ -195,7 +193,7 @@ namespace Rezgar.Crawler.DataExtraction
                             var documentLink = contextDocumentLinks[i];
 
                             var contextDocumentParser =
-                                _websiteConfig.CreateDocumentStringParser(
+                                _documentLink.Config.CreateDocumentStringParser(
                                     documentString,
                                     documentLink,
                                     extractionItem.Context.ContextDocumentType
@@ -262,21 +260,21 @@ namespace Rezgar.Crawler.DataExtraction
                     }
 
                     var url = linkValue;
-                    var config = _documentLink.Config;
 
                     ResourceLink resourceLink;
                     switch (extractionLink.Type)
                     {
                         case ExtractionLink.LinkTypes.Document:
-                            resourceLink = new DocumentLink(url, extractionLink.HttpMethod, extractionLink.Parameters, extractionLink.Headers, config, extractionLink.ExtractLinks, extractionLink.ExtractData, linkScopedExtractedItems, _documentLink);
+                            resourceLink = new DocumentLink(url, extractionLink.HttpMethod, extractionLink.Parameters, extractionLink.Headers, _documentLink.Config, _documentLink.Job, extractionLink.ExtractLinks, extractionLink.ExtractData, linkScopedExtractedItems, _documentLink);
                             break;
                         case ExtractionLink.LinkTypes.File:
-                            resourceLink = new FileLink(url, extractionLink.Parameters, extractionLink.Headers, config, _documentLink);
+                            resourceLink = new FileLink(url, extractionLink.Parameters, extractionLink.Headers, _documentLink.Config, _documentLink.Job, _documentLink);
                             break;
                         case ExtractionLink.LinkTypes.Auto:
                             resourceLink = new AutoDetectLink(
                                 linkValue,
-                                config,
+                                _documentLink.Config,
+                                _documentLink.Job,
                                 extractionLink,
                                 linkScopedExtractedItems,
                                 _documentLink
@@ -339,12 +337,29 @@ namespace Rezgar.Crawler.DataExtraction
                     }
                     else
                     {
-                        Debug.Assert(_websiteConfig.PredefinedValues.Dictionary.ContainsKey(dependencyName));
+                        Debug.Assert(
+                            _documentLink.Config.PredefinedValues.Dictionary.ContainsKey(dependencyName) ||
+                            (_documentLink.Job?.PredefinedValues.Dictionary.ContainsKey(dependencyName) ?? false)
+                        );
                     }
                 }
 
+                #region Attempt to resolve dependency from Predefined values
+
+                if (_documentLink.Job != null)
+                    if (!stringWithDependencies.HasBeenResolved)
+                        if (!stringWithDependencies.Resolve(extractedItems, _documentLink.Config.PredefinedValues))
+                        {
+                            Trace.TraceError("ExtractSingleItem: Could not resolve item {0} with dependencies ({1}) based on extracted items {2}",
+                                extractionItem.Name,
+                                string.Join(",", stringsWithDependencies.Select(pred => pred.FormatString)),
+                                string.Join(",", extractedItems.Select(pred => string.Format("[{0}: {1}]", pred.Key, string.Join(",", pred.Value))))
+                            );
+                            return;
+                        }
+
                 if (!stringWithDependencies.HasBeenResolved)
-                    if (!stringWithDependencies.Resolve(extractedItems, _websiteConfig.PredefinedValues))
+                    if (!stringWithDependencies.Resolve(extractedItems, _documentLink.Config.PredefinedValues))
                     {
                         Trace.TraceError("ExtractSingleItem: Could not resolve item {0} with dependencies ({1}) based on extracted items {2}",
                             extractionItem.Name,
@@ -353,6 +368,8 @@ namespace Rezgar.Crawler.DataExtraction
                         );
                         return;
                     }
+
+                #endregion
             }
         }
 
@@ -382,9 +399,9 @@ namespace Rezgar.Crawler.DataExtraction
             switch (documentType)
             {
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS:
-                    return new HtmlLocationCssDocumentProcessor(websiteConfig, documentString, documentLink);
+                    return new HtmlLocationCssDocumentProcessor(documentString, documentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath:
-                    return new HtmlLocationXPathDocumentProcessor(websiteConfig, documentString, documentLink);
+                    return new HtmlLocationXPathDocumentProcessor(documentString, documentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Xml:
                     throw new NotImplementedException();
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Json:
@@ -399,9 +416,9 @@ namespace Rezgar.Crawler.DataExtraction
             switch (websiteConfig.CrawlingSettings.DocumentType)
             {
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlCSS:
-                    return new HtmlLocationCssDocumentProcessor(websiteConfig, webResponse, documentLink);
+                    return new HtmlLocationCssDocumentProcessor(webResponse, documentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath:
-                    return new HtmlLocationXPathDocumentProcessor(websiteConfig, webResponse, documentLink);
+                    return new HtmlLocationXPathDocumentProcessor(webResponse, documentLink);
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Xml:
                     throw new NotImplementedException();
                 case Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.Json:

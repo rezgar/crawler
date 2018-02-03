@@ -1,4 +1,5 @@
 ﻿using Rezgar.Crawler.Download;
+using Rezgar.Crawler.Download.ResourceLinks;
 using Rezgar.Crawler.Queue;
 using System;
 using System.Collections.Generic;
@@ -13,13 +14,16 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
     {
         #region Variables & Properties
 
-        public string Name;
+        public string Name = "default";
 
         public WebsiteConfig Config;
+
         //public Dictionary<string, CrawlingConditional> Conditionals;
-        public IList<ResourceLink> EntryLinks = new List<ResourceLink>();
-        
-        public System.Net.CookieContainer CookieContainer;
+        internal CrawlingPredefinedValues PredefinedValues = new CrawlingPredefinedValues();
+        internal IList<ResourceLink> EntryLinks = new List<ResourceLink>();
+        internal DocumentLink InitializationDocumentLink;
+
+        internal System.Net.CookieContainer CookieContainer;
 
         #endregion
 
@@ -27,5 +31,24 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
         {
             Config = config;
         }
+
+        #region Public methods
+
+        public WebsiteJob PreDefine(string name, params string[] values)
+        {
+            PredefinedValues.Dictionary[name] = values.ToList();
+            return this;
+        }
+
+        public string GetPredefined(string name)
+        {
+            return GetPredefinedCollection(name).SingleOrDefault();
+        }
+        public IList<string> GetPredefinedCollection(string name)
+        {
+            return PredefinedValues.Dictionary.GetValues(name);
+        }
+
+        #endregion
     }
 }

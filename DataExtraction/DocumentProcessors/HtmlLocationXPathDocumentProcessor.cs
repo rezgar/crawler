@@ -18,13 +18,15 @@ namespace Rezgar.Crawler.DataExtraction.DocumentProcessors
         private readonly HtmlDocument _htmlDocument;
         private readonly XPathNavigator _xPathNavigator;
 
-        public HtmlLocationXPathDocumentProcessor(WebsiteConfig websiteConfig, WebResponse webResponse, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath)
+        public HtmlLocationXPathDocumentProcessor(WebResponse webResponse, DocumentLink documentLink) 
+            : base(documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.Load(webResponse.GetResponseStream(), true);
             _xPathNavigator = _htmlDocument.CreateNavigator();
         }
-        public HtmlLocationXPathDocumentProcessor(WebsiteConfig websiteConfig, string documentString, DocumentLink documentLink) : base(websiteConfig, documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath)
+        public HtmlLocationXPathDocumentProcessor(string documentString, DocumentLink documentLink) 
+            : base(documentLink, Configuration.WebsiteConfigSections.WebsiteCrawlingSettings.DocumentTypes.HtmlXPath)
         {
             _htmlDocument = new HtmlDocument();
             _htmlDocument.LoadHtml(documentString);

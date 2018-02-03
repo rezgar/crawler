@@ -1,4 +1,5 @@
-﻿using Rezgar.Crawler.Configuration.WebsiteConfigSections;
+﻿using Rezgar.Crawler.Configuration;
+using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Utils.Collections;
 using SmartFormat;
 using System;
@@ -52,7 +53,7 @@ namespace Rezgar.Crawler.DataExtraction
 
         #region Methods
 
-        public bool Resolve(CollectionDictionary<string, string> extractedItems, WebsitePredefinedValues predefinedValues)
+        public bool Resolve(CollectionDictionary<string, string> extractedItems, CrawlingPredefinedValues predefinedValues)
         {
             var resolvedValues = new CollectionDictionary<string>();
             foreach(var dependencyName in DependencyNames)

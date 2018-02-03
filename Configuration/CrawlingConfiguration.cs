@@ -19,9 +19,14 @@ namespace Rezgar.Crawler.Configuration
         public IEnumerable<CrawlingQueueItem> GenerateCrawlingQueueItems()
         {
             foreach (var config in WebsiteConfigs.Values)
+            {
+                foreach (var link in config.EntryLinks)
+                    yield return new CrawlingQueueItem(link);
+
                 foreach (var job in config.Jobs)
                     foreach (var link in job.EntryLinks)
                         yield return new CrawlingQueueItem(link);
+            }
         }
 
         public bool Validate()

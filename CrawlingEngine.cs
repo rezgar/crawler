@@ -272,6 +272,7 @@ namespace Rezgar.Crawler
             var tasks = new List<Task>();
             foreach (var config in crawlingConfiguration.WebsiteConfigs.Values)
             {
+                // Initializing config
                 if (config.InitializationDocumentLink != null)
                 {
                     tasks.Add(
@@ -301,6 +302,41 @@ namespace Rezgar.Crawler
                                 }
                             }))
                     );
+                }
+
+                // Initializing jobs
+                foreach(var job in config.Jobs)
+                {
+                    if (job.InitializationDocumentLink != null)
+                    {
+                        tasks.Add(
+                            TaskExtensions.Unwrap(
+                                CrawlAsync(job.InitializationDocumentLink)
+                                .ContinueWith(async initializationDataTask =>
+                                {
+                                    if (initializationDataTask.Status == TaskStatus.RanToCompletion)
+                                    {
+                                        foreach (var extractedUnit in initializationDataTask.Result)
+                                        {
+                                            switch (extractedUnit)
+                                            {
+                                                case ExtractedDataUnit extractedDataUnit:
+                                                    foreach (var record in extractedDataUnit.ExtractedData)
+                                                        job.PredefinedValues.Dictionary[record.Key] = record.Value;
+                                                    break;
+                                                case ExtractedLinksUnit extractedLinkUnit:
+                                                    await Task.WhenAll(
+                                                        extractedLinkUnit.ExtractedLinks
+                                                        .Select(link => CrawlAsync(link, false))
+                                                        .ToArray()
+                                                    );
+                                                    break;
+                                            }
+                                        }
+                                    }
+                                }))
+                        );
+                    }
                 }
             }
 

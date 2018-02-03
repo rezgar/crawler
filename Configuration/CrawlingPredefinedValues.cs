@@ -5,9 +5,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
+namespace Rezgar.Crawler.Configuration
 {
-    public class WebsitePredefinedValues
+    public class CrawlingPredefinedValues
     {
         #region Constants
         

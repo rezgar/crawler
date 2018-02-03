@@ -25,9 +25,10 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             IDictionary<string, StringWithDependencies> parameters,
             IDictionary<string, StringWithDependencies> headers,
             WebsiteConfig config,
+            WebsiteJob job,
             DocumentLink referrerResourceLink
         ) 
-            : base(url, WebRequestMethods.Http.Get, parameters, headers, config, referrerResourceLink)
+            : base(url, WebRequestMethods.Http.Get, parameters, headers, config, job, referrerResourceLink)
         {
         }
 
