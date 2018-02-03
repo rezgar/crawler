@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction
 {
-    public interface IDependent
+    public interface Idependent
     {
         IEnumerable<StringWithDependencies> GetStringsWithDependencies();
     }

@@ -29,7 +29,7 @@ namespace Rezgar.Crawler.Configuration
             var result = true;
             foreach(var websiteConfig in WebsiteConfigs.Values)
             {
-                if (!websiteConfig.Validate())
+                if (!websiteConfig.PredefinedValues.Validate())
                 {
                     result = false;
                 }

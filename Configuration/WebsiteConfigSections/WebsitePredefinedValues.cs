@@ -20,7 +20,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
         internal readonly HashSet<string> Required = new HashSet<string>();
         public readonly CollectionDictionary<string> Dictionary = new CollectionDictionary<string>();
 
-        internal bool Validate()
+        public bool Validate()
         {
             var result = true;
             foreach(var required in Required)

@@ -98,7 +98,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             return Enumerable.Empty<string>();
         }
 
-        #region IDependent
+        #region Idependent
 
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()
         {

@@ -33,7 +33,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             yield return regex.Replace(value, ReplaceValue);
         }
 
-        #region IDependent
+        #region Idependent
 
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()
         {

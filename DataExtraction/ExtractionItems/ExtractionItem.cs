@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.ExtractionItems
 {
-    public class ExtractionItem : IDependent
+    public class ExtractionItem : Idependent
     {
         public string Name;
         public StringWithDependencies Value;
@@ -48,7 +48,7 @@ namespace Rezgar.Crawler.DataExtraction.ExtractionItems
 
         #endregion
 
-        #region IDependent
+        #region Idependent
 
         public virtual IEnumerable<StringWithDependencies> GetStringsWithDependencies()
         {

@@ -3,6 +3,7 @@ using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Crawler.Download.ResourceLinks;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Rezgar.Crawler.Configuration
 {
@@ -38,27 +39,25 @@ namespace Rezgar.Crawler.Configuration
 
         #region Public methods
 
-        public void PredefineValue(string name, params string[] value)
+        public WebsiteConfig PreDefine(string name, params string[] values)
         {
-            PredefinedValues.Dictionary[name] = value;
+            PredefinedValues.Dictionary[name] = values.ToList();
+            return this;
         }
 
-        public bool Validate()
+        public string GetPredefined(string name)
         {
-            var result = true;
-            if (!PredefinedValues.Validate())
-            {
-                Trace.TraceError($"Predefined Values validation failed for WebsiteConfig {Name}");
-                result = false;
-            }
-            
-            return result;
+            return GetPredefinedCollection(name).SingleOrDefault();
+        }
+        public IList<string> GetPredefinedCollection(string name)
+        {
+            return PredefinedValues.Dictionary.GetValues(name);
         }
 
         #endregion
 
         #region Declarations
-        
+
         #endregion
     }
 }
