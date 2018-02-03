@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction
 {
-    public abstract class PostProcessor: Idependent
+    public abstract class PostProcessor: IDependent
     {
         public virtual IEnumerable<string> Execute(IEnumerable<string> values)
         {

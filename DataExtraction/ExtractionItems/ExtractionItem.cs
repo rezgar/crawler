@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.DataExtraction.ExtractionItems
 {
-    public class ExtractionItem : Idependent
+    public class ExtractionItem : IDependent
     {
         public string Name;
         public StringWithDependencies Value;
