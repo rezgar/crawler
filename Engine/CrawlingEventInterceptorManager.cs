@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Rezgar.Crawler.Download.ResourceContentUnits;
 using Rezgar.Crawler.Download.ResourceLinks;
 using Rezgar.Utils.Collections;
+using Rezgar.Crawler.Download;
 
 namespace Rezgar.Crawler.Engine
 {
@@ -35,10 +36,10 @@ namespace Rezgar.Crawler.Engine
             );
         }
 
-        public override Task<bool> OnDataDocumentDownloadedAsync(DocumentLink extractableDocumentLink, ExtractedDataUnit extractedDataUnit, HttpResultUnit httpResultUnit)
+        public override Task<bool> OnDataDocumentDownloadedAsync(ResourceLink resourceLink, ExtractedDataUnit extractedDataUnit, HttpResultUnit httpResultUnit)
         {
             return ExecuteOnAllInterceptorsAsync(eventInterceptor =>
-                eventInterceptor.OnDataDocumentDownloadedAsync(extractableDocumentLink, extractedDataUnit, httpResultUnit)
+                eventInterceptor.OnDataDocumentDownloadedAsync(resourceLink, extractedDataUnit, httpResultUnit)
             );
         }
 

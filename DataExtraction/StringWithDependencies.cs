@@ -53,8 +53,10 @@ namespace Rezgar.Crawler.DataExtraction
 
         #region Methods
 
-        public bool Resolve(CollectionDictionary<string, string> extractedItems, CrawlingPredefinedValues predefinedValues)
+        public bool Resolve(CollectionDictionary<string, string> extractedItems, CrawlingPredefinedValues predefinedValues, bool replaceWithEmptyValuesWhenNotFound)
         {
+            var result = true;
+
             var resolvedValues = new CollectionDictionary<string>();
             foreach(var dependencyName in DependencyNames)
             {
@@ -71,12 +73,17 @@ namespace Rezgar.Crawler.DataExtraction
                 }
                 else
                 {
-                    //return false;
-                    resolvedValues.AddValue(dependencyName, string.Empty);
+                    //result = false;
+                    if (replaceWithEmptyValuesWhenNotFound)
+                    {
+                        resolvedValues.AddValue(dependencyName, string.Empty);
+                    }
+                    else
+                        result = false;
                 }
             }
 
-            HasBeenResolved = true;
+            HasBeenResolved = result;
             StringsResolved = FormatAllDependencyCombinations(resolvedValues).ToArray();
             return true;
         }

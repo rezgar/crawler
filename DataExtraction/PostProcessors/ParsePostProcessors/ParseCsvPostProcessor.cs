@@ -74,7 +74,9 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors.ParsePostProcessors
                     var result = new CsvDocument(reader.Context.HeaderRecord);
                     do
                     {
-                        result.Rows.Add(reader.Parser.Read());
+                        var row = reader.Parser.Read();
+                        if (row != null)
+                            result.Rows.Add(row);
                     }
                     while (reader.Read());
 

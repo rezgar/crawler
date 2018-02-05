@@ -60,21 +60,7 @@ namespace Rezgar.Crawler.Configuration
                         break;
 
                     case "jobs":
-                        var websiteJobs = ReadWebsiteJobsSection(reader, config);
-
-                        // Jobs are optional. Crawling engine does not require a link to be tied to a job.
-                        //if (websiteJobs.Count == 0)
-                        //    websiteJobs.Add(new WebsiteJob(config));
-
-                        foreach (var job in websiteJobs)
-                        {
-                            Debug.Assert(!string.IsNullOrEmpty(job.Name));
-                            //Debug.Assert(job.Id > 0);
-
-                            job.Config = config;
-                            config.JobsByName.Add(job.Name, job);
-                        }
-                        
+                        ReadWebsiteJobsSectionIntoConfig(reader, config);
                         break;
 
                     case "extraction":
@@ -347,53 +333,56 @@ namespace Rezgar.Crawler.Configuration
 
         #region Website Jobs
 
-        private static IList<WebsiteJob> ReadWebsiteJobsSection(XmlTextReader reader, WebsiteConfig config)
+        private static void ReadWebsiteJobsSectionIntoConfig(XmlTextReader reader, WebsiteConfig config)
         {
-            var result = new List<WebsiteJob>();
             while (!(reader.Name == "jobs" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
             {
-                if (reader.IsStartElement("job"))
+                if (!reader.IsStartElement())
+                    continue;
+
+                switch(reader.Name)
                 {
-                    var job = new WebsiteJob(config);
+                    case "job":
+                        var job = ReadWebsiteJobNode(reader, config);
+                        config.JobsByName.Add(job.Name, job);
+                        break;
+                    case "template":
+                        var template = ReadWebsiteJobNode(reader, config);
+                        config.JobTemplatesByName.Add(template.Name, template);
+                        break;
+                }
+            }
+        }
 
-                    job.Name = reader.GetAttribute<string>("name", job.Name);
-                    //reader.GetAttribute(ref websiteJob.Id, "id");
+        private static WebsiteJob ReadWebsiteJobNode(XmlTextReader reader, WebsiteConfig config)
+        {
+            var job = new WebsiteJob(config);
 
-                    //var domain = reader.GetAttribute("domain");
-                    //if (!string.IsNullOrEmpty(domain))
-                    //    websiteJob.SourceDomainUri = new Uri(domain, UriKind.RelativeOrAbsolute);
+            job.Name = reader.GetAttribute<string>("name", job.Name);
+            var holderNodeName = reader.Name;
+            while (!(reader.Name == holderNodeName && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            {
+                if (!reader.IsStartElement())
+                    continue;
 
-                    //websiteJob.SourceDomainCookie = reader.GetAttribute("cookie");
+                switch (reader.Name)
+                {
+                    case "initialization":
+                        job.InitializationDocumentLink = ReadInitializationDocumentSection(reader, config, job);
+                        break;
+                    case "entry":
+                        job.EntryLinks = ReadEntryLinksSection(reader, config, job);
+                        break;
+                    case "dictionary":
+                        job.PredefinedValues = ReadPredefinedValuesSection(reader, config);
+                        break;
 
-                    //reader.GetAttribute(ref websiteJob.SyncMode, "sync_mode");
-
-                    while (!(reader.Name == "job" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
-                    {
-                        if (!reader.IsStartElement())
-                            continue;
-
-                        switch (reader.Name)
-                        {
-                            case "initialization":
-                                job.InitializationDocumentLink = ReadInitializationDocumentSection(reader, config, job);
-                                break;
-                            case "entry":
-                                job.EntryLinks = ReadEntryLinksSection(reader, config, job);
-                                break;
-                            case "dictionary":
-                                job.PredefinedValues = ReadPredefinedValuesSection(reader, config);
-                                break;
-
-                            default:
-                                throw new ArgumentException("Unrecognized element", reader.Name);
-                        }
-                    }
-
-                    result.Add(job);
+                    default:
+                        throw new ArgumentException("Unrecognized element", reader.Name);
                 }
             }
 
-            return result;
+            return job;
         }
 
         #endregion

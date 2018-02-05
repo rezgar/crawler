@@ -20,7 +20,7 @@ namespace Rezgar.Crawler.Download
         public readonly IDictionary<string, StringWithDependencies> Headers;
         public readonly string HttpMethod;
         public readonly WebsiteConfig Config;
-        public readonly WebsiteJob Job;
+        public WebsiteJob Job; // can be set when job is copied
 
         public ResourceLink ReferrerResourceLink;
         public string UserAgent;

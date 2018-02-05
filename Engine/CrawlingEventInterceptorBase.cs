@@ -23,7 +23,7 @@ namespace Rezgar.Crawler.Engine
         ///     
         ///     NOTE: If there is a sequence of failed processing results - it's a sign that we should stop crawling this job (either duplicates, or site is down, or we got blocked)
         ///</returns>
-        public async virtual Task<bool> OnDataDocumentDownloadedAsync(DocumentLink extractableDocumentLink, ExtractedDataUnit extractedDataUnit, HttpResultUnit httpResultUnit) { return true; }
+        public async virtual Task<bool> OnDataDocumentDownloadedAsync(ResourceLink resourceLink, ExtractedDataUnit extractedDataUnit, HttpResultUnit httpResultUnit) { return true; }
 
         /// <returns>True - if file download result was successfully processed, False - download result processing failed (should either re-enqueue, trace and continue or do something else)</returns>
         public async virtual Task<bool> OnFileDownloadedAsync(FileLink fileResourceLink, DownloadedFilesUnit downloadedFileUnit, HttpResultUnit httpResultUnit) { return true; }

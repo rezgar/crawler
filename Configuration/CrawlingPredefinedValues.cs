@@ -18,7 +18,14 @@ namespace Rezgar.Crawler.Configuration
         #endregion
 
         internal readonly HashSet<string> Required = new HashSet<string>();
-        public readonly CollectionDictionary<string> Dictionary = new CollectionDictionary<string>();
+        public readonly CollectionDictionary<string, string> Dictionary = new CollectionDictionary<string, string>();
+
+        public CrawlingPredefinedValues() { }
+        public CrawlingPredefinedValues(CrawlingPredefinedValues template)
+        {
+            Required = template.Required.ToHashSet();
+            Dictionary = new CollectionDictionary<string, string>(template.Dictionary);
+        }
 
         public bool Validate()
         {

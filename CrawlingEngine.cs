@@ -122,7 +122,7 @@ namespace Rezgar.Crawler
 
                                             case ExtractedDataUnit extractedDataUnit:
                                                 if (!await _crawlingEventInterceptorManager.OnDataDocumentDownloadedAsync(
-                                                        queueItem.ResourceLink as DocumentLink,
+                                                        queueItem.ResourceLink, // May be a DocumentLink, or a FrameLink. Not quite intuitive and probably requires redesign.
                                                         extractedDataUnit,
                                                         httpResultUnit
                                                     ))

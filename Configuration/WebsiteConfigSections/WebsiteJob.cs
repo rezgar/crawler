@@ -27,9 +27,22 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 
         #endregion
 
-        public WebsiteJob(WebsiteConfig config)
+        internal WebsiteJob(WebsiteConfig config)
         {
             Config = config;
+        }
+
+        internal WebsiteJob(WebsiteJob template)
+            : this(template.Config)
+        {
+            PredefinedValues = new CrawlingPredefinedValues(template.PredefinedValues);
+            EntryLinks = template.EntryLinks.ToList();
+            foreach (var link in EntryLinks)
+                link.Job = this;
+
+            InitializationDocumentLink = template.InitializationDocumentLink; // is stateless, so we don't have to create a new object
+            if (InitializationDocumentLink != null)
+                InitializationDocumentLink.Job = this;
         }
 
         #region Public methods

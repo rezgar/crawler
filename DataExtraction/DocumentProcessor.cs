@@ -348,7 +348,7 @@ namespace Rezgar.Crawler.DataExtraction
 
                 if (_documentLink.Job != null)
                     if (!stringWithDependencies.HasBeenResolved)
-                        if (!stringWithDependencies.Resolve(extractedItems, _documentLink.Config.PredefinedValues))
+                        if (!stringWithDependencies.Resolve(extractedItems, _documentLink.Job.PredefinedValues, false))
                         {
                             Trace.TraceError("ExtractSingleItem: Could not resolve item {0} with dependencies ({1}) based on extracted items {2}",
                                 extractionItem.Name,
@@ -359,7 +359,7 @@ namespace Rezgar.Crawler.DataExtraction
                         }
 
                 if (!stringWithDependencies.HasBeenResolved)
-                    if (!stringWithDependencies.Resolve(extractedItems, _documentLink.Config.PredefinedValues))
+                    if (!stringWithDependencies.Resolve(extractedItems, _documentLink.Config.PredefinedValues, true))
                     {
                         Trace.TraceError("ExtractSingleItem: Could not resolve item {0} with dependencies ({1}) based on extracted items {2}",
                             extractionItem.Name,
