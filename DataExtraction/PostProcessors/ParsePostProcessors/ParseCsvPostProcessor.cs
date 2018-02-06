@@ -61,24 +61,22 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors.ParsePostProcessors
 
             #region Implementation of IParser<CsvDocument>
 
+            // http://joshclose.github.io/CsvHelper/2.x/
             public CsvDocument Parse(string value)
             {
                 using (var textReader = new StringReader(value))
-                using (var reader = new CsvReader(textReader))
+                using (var parser = new CsvParser(textReader))
                 {
-                    var isReaderRead = reader.Read() && reader.ReadHeader();
+                    var result = new CsvDocument(parser.Read());
 
-                    if (!isReaderRead)
-                        return null;
-                    
-                    var result = new CsvDocument(reader.Context.HeaderRecord);
-                    do
+                    while (true)
                     {
-                        var row = reader.Parser.Read();
-                        if (row != null)
-                            result.Rows.Add(row);
+                        var row = parser.Read();
+                        if (row == null)
+                            break;
+
+                        result.Rows.Add(row);
                     }
-                    while (reader.Read());
 
                     return result;
                 }

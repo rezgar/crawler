@@ -68,5 +68,24 @@ namespace Rezgar.Crawler.Download.ResourceLinks
 
             return result;
         }
+
+        public override ResourceLink Copy()
+        {
+            var result = new DocumentLink(
+                Url,
+                HttpMethod,
+                Parameters?.ToDictionary(pred => pred.Key, pred => pred.Value),
+                Headers?.ToDictionary(pred => pred.Key, pred => pred.Value),
+                Config, 
+                Job,
+                ExtractLinks,
+                ExtractData,
+                PreExtractedItems != null ? new CollectionDictionary<string, string>(PreExtractedItems) : null
+            );
+
+            result.ExtractionItemsOverride = ExtractionItemsOverride.ToDictionary(pred => pred.Key, pred => pred.Value);
+
+            return result;
+        }
     }
 }

@@ -229,7 +229,10 @@ namespace Rezgar.Crawler
                             using (var webResponse = webResponseTask.Result as HttpWebResponse)
                             {
                                 webRequest.FixCookies(webResponse);
-                                resourceLink.Config.CrawlingSettings.Cookies = webResponse.Cookies;
+
+                                // Use job-based crawling state, if crawling is based off a job. Otherwise, use config-based.
+                                var crawlingState = resourceLink.Job?.CrawlingState ?? resourceLink.Config.CrawlingState;
+                                crawlingState.Cookies = webResponse.Cookies;
 
                                 httpResultUnit.ResponseUrl = webResponse.ResponseUri.ToString();
                                 httpResultUnit.ContentEncoding = webResponse.ContentEncoding;

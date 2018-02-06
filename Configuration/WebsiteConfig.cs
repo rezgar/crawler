@@ -45,6 +45,13 @@ namespace Rezgar.Crawler.Configuration
         internal DocumentLink InitializationDocumentLink;
         internal IDictionary<string, ExtractionItem> ExtractionItems = new Dictionary<string, ExtractionItem>();
 
+        /// <summary>
+        /// Crawling state, persisted across crawling items (cookies, etc.)
+        /// If Job is not null, Job-based CrawlingSettings are used instead.
+        /// TODO: Inherit both Config and Job from an abstract "CrawlingUnit" class or something, since they have a lot in common
+        /// </summary>
+        internal Download.CrawlingState CrawlingState = new CrawlingState();
+
         #endregion
 
         #region Public methods

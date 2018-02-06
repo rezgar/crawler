@@ -23,7 +23,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
         internal IList<ResourceLink> EntryLinks = new List<ResourceLink>();
         internal DocumentLink InitializationDocumentLink;
 
-        internal System.Net.CookieContainer CookieContainer;
+        internal Download.CrawlingState CrawlingState = new CrawlingState();
 
         #endregion
 
@@ -36,11 +36,15 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             : this(template.Config)
         {
             PredefinedValues = new CrawlingPredefinedValues(template.PredefinedValues);
-            EntryLinks = template.EntryLinks.ToList();
-            foreach (var link in EntryLinks)
-                link.Job = this;
 
-            InitializationDocumentLink = template.InitializationDocumentLink; // is stateless, so we don't have to create a new object
+            foreach (var link in template.EntryLinks)
+            {
+                var entryLinkCopy = link.Copy();
+                entryLinkCopy.Job = this;
+                EntryLinks.Add(entryLinkCopy);
+            }
+
+            InitializationDocumentLink = template.InitializationDocumentLink?.Copy() as DocumentLink; // is stateless, so we don't have to create a new object
             if (InitializationDocumentLink != null)
                 InitializationDocumentLink.Job = this;
         }

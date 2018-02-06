@@ -43,5 +43,17 @@ namespace Rezgar.Crawler.Download.ResourceLinks
                 return new[] { new DownloadedFilesUnit(memoryStream.ToArray(), webResponse.ContentType) };
             }
         }
+
+        public override ResourceLink Copy()
+        {
+            return new FileLink(
+                Url,
+                Parameters?.ToDictionary(pred => pred.Key, pred => pred.Value),
+                Headers?.ToDictionary(pred => pred.Key, pred => pred.Value),
+                Config,
+                Job,
+                ReferrerResourceLink?.Copy() as DocumentLink
+            );
+        }
     }
 }

@@ -64,5 +64,10 @@ namespace Rezgar.Crawler.Download.ResourceLinks
                 return fileLink.ProcessWebResponseAsync(webResponse);
             }
         }
+
+        public override ResourceLink Copy()
+        {
+            return new AutoDetectLink(Url, Config, Job, ExtractionLink, new CollectionDictionary<string, string>(PreExtractedItems), ReferrerResourceLink?.Copy() as DocumentLink);
+        }
     }
 }

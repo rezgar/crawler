@@ -59,6 +59,8 @@ namespace Rezgar.Crawler.Download
             return new ResponseStringUnit(await webResponse.GetResponseStringAsync());
         }
 
+        public abstract ResourceLink Copy();
+
         public override string ToString()
         {
             return Url.ToString();

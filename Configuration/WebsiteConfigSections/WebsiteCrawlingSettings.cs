@@ -95,9 +95,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
         public int ErrorRetryTimeout = 2000; //ms
 
         #endregion
-
-        public CookieCollection Cookies;
-
+        
         public System.Net.WebRequest SetUpWebRequest(System.Net.HttpWebRequest webRequest, ResourceLink resourceLink)
         {
             webRequest.Method = resourceLink.HttpMethod;
@@ -113,10 +111,11 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
             webRequest.Timeout = (int)DownloadTimeout.TotalMilliseconds;
             webRequest.ReadWriteTimeout = webRequest.Timeout;
 
-            if (Cookies != null && webRequest.SupportsCookieContainer)
+            var crawlingState = resourceLink.Job?.CrawlingState ?? resourceLink.Config.CrawlingState;
+            if (crawlingState.Cookies != null && webRequest.SupportsCookieContainer)
             {
                 webRequest.CookieContainer = new CookieContainer();
-                webRequest.CookieContainer.Add(Cookies);
+                webRequest.CookieContainer.Add(crawlingState.Cookies);
             }
 
             //if (data.Job.SourceDomainCookie != null)
