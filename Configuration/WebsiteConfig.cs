@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace Rezgar.Crawler.Configuration
 {
-    public class WebsiteConfig
+    public class WebsiteConfig : CrawlingBase
     {
         #region Constants
 
@@ -19,7 +19,7 @@ namespace Rezgar.Crawler.Configuration
         public string Name;
         public WebsiteCrawlingSettings CrawlingSettings;
 
-        // NOTE: Decided to keep the JOBS section, can be useful in parallel website processing
+        internal int? JobsProcessedInParallel;
         internal IDictionary<string, WebsiteJob> JobsByName = new Dictionary<string, WebsiteJob>();
         internal ICollection<WebsiteJob> Jobs
         {
@@ -36,22 +36,8 @@ namespace Rezgar.Crawler.Configuration
             get => JobTemplates.SingleOrDefault();
         }
 
-        internal CrawlingPredefinedValues PredefinedValues = new CrawlingPredefinedValues();
-        internal IList<ResourceLink> EntryLinks = new List<ResourceLink>();
-        /// <summary>
-        /// Link (with items) extracted once per Config execution. 
-        /// Used to extract initialization data for PredefinedValues, set session info, login user etc.
-        /// </summary>
-        internal DocumentLink InitializationDocumentLink;
         internal IDictionary<string, ExtractionItem> ExtractionItems = new Dictionary<string, ExtractionItem>();
-
-        /// <summary>
-        /// Crawling state, persisted across crawling items (cookies, etc.)
-        /// If Job is not null, Job-based CrawlingSettings are used instead.
-        /// TODO: Inherit both Config and Job from an abstract "CrawlingUnit" class or something, since they have a lot in common
-        /// </summary>
-        internal Download.CrawlingState CrawlingState = new CrawlingState();
-
+        
         #endregion
 
         #region Public methods
@@ -88,10 +74,6 @@ namespace Rezgar.Crawler.Configuration
             JobsByName.Add(name, result);
             return result;
         }
-
-        #endregion
-
-        #region Declarations
 
         #endregion
     }

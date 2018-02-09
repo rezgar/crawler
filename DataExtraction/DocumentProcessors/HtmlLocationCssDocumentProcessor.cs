@@ -6,8 +6,6 @@ using System.Text;
 using System.Xml.XPath;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
-using Rezgar.Crawler.Configuration;
-using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.Download.ResourceLinks;
 
 namespace Rezgar.Crawler.DataExtraction.DocumentProcessors

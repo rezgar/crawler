@@ -65,7 +65,10 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors.ParsePostProcessors
             public CsvDocument Parse(string value)
             {
                 using (var textReader = new StringReader(value))
-                using (var parser = new CsvParser(textReader))
+                using (var parser = new CsvParser(textReader, new CsvHelper.Configuration.Configuration
+                {
+                    TrimOptions = CsvHelper.Configuration.TrimOptions.Trim
+                }))
                 {
                     var result = new CsvDocument(parser.Read());
 

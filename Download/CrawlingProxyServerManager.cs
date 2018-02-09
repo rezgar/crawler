@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.Download
 {
-    public class CrawlingProxy
+    public class CrawlingProxyServerManager
     {
+        public readonly IList<CrawlingProxyServer> ProxyServers = new List<CrawlingProxyServer>();
     }
 }

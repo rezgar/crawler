@@ -1,0 +1,92 @@
+﻿using Rezgar.Crawler.Download;
+using Rezgar.Crawler.Download.ResourceLinks;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Rezgar.Crawler.Queue.QueueProxies
+{
+    public class CollectionCrawlingQueueProxy : QueueProxy
+    {
+        private ICollection<CollectionCrawlingQueueProxy> _dependencies;
+
+        // NOTE: Can not be changed, added/removed externally.
+        // That means that there will never be new items added and the status flow is static
+
+        protected InitializationLink InitializationLink { get; private set; } = null;
+        protected IList<CrawlingQueueItem> QueueItems { get; private set; } = new List<CrawlingQueueItem>();
+        protected IEnumerable<CrawlingQueueItem> QueueItemsAvailable => QueueItems.Where(pred => pred.Status == CrawlingQueueItem.CrawlingStatuses.NotLinked);
+        
+        public CollectionCrawlingQueueProxy(InitializationLink initializationLink, ICollection<ResourceLink> resourceLinks, params CollectionCrawlingQueueProxy[] dependencies)
+        {
+            _dependencies = dependencies;
+
+            if (initializationLink != null)
+                InitializationLink = initializationLink;
+
+            foreach (var resourceLink in resourceLinks)
+                QueueItems.Add(new CrawlingQueueItem(resourceLink));
+        }
+
+        public override async Task<IList<CrawlingQueueItem>> FetchAsync(int portionSize, CancellationTokenSource cts)
+        {
+            ChangeStatus(Statuses.Fetching);
+
+            // Wait for all dependencies to be fully crawled, then continue
+            var notDepletedDependencies = _dependencies?.Where(pred => pred.Status != Statuses.Depleted).ToArray();
+            if (notDepletedDependencies != null && notDepletedDependencies.Length > 0)
+            {
+                // No dependencies, that still have items, not fully processed
+                var semaphore = new SemaphoreSlim(0, notDepletedDependencies.Length);
+
+                foreach (var dependency in notDepletedDependencies)
+                {
+                    dependency.StatusChanged += status =>
+                    {
+                        if (status == Statuses.Depleted)
+                        {
+                            semaphore.Release();
+                        }
+                    };
+                }
+
+                await semaphore.WaitAsync();
+            }
+
+            // On first fetch returns only InitializationQueueItem.
+            if (InitializationLink != null)
+            {
+                await CrawlingEngine.CrawlAsync(InitializationLink);
+            }
+
+            var queueItems = QueueItemsAvailable.ToArray();
+
+            if (queueItems.Length > 0)
+            {
+                var queueItemsSemaphore = new SemaphoreSlim(0, queueItems.Length);
+
+                foreach (var queueItem in queueItems)
+                {
+                    queueItem.ProcessingCompleted += () =>
+                    {
+                        queueItemsSemaphore.Release();
+                    };
+                }
+
+                queueItemsSemaphore.WaitAsync()
+                    .ContinueWith(allQueuedItemsCompletedTask =>
+                    {
+                        ChangeStatus(Statuses.Depleted);
+                    });
+            }
+            else
+                ChangeStatus(Statuses.Depleted);
+
+            // TODO: Add predefined values validation for config/job after initialization and before crawling EntryLinks.
+            return queueItems;
+        }
+    }
+}

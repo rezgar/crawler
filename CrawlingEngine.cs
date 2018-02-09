@@ -15,7 +15,6 @@ using Rezgar.Crawler.Download.ResourceLinks;
 using System.Diagnostics;
 using Rezgar.Crawler.Engine;
 using Rezgar.Utils.Http;
-using Rezgar.Crawler.Configuration;
 
 namespace Rezgar.Crawler
 {
@@ -38,14 +37,9 @@ namespace Rezgar.Crawler
 
         public async Task ProcessCrawlingQueueAsync(CrawlingQueue crawlingQueue)
         {
-            if (!crawlingQueue.CrawlingConfiguration.Validate())
-                throw new ArgumentException("Crawling configuration invalid. Crawling not started.");
-            
             _crawlingParameters.CancellationTokenSource.Token.Register(() => 
                 crawlingQueue.QueueCancellationTokenSource.Cancel()
             );
-
-            await InitializeAsync(crawlingQueue.CrawlingConfiguration);
 
             var tasksLock = new System.Threading.ReaderWriterLockSlim();
             var tasks = new HashSet<Task>();
@@ -84,6 +78,8 @@ namespace Rezgar.Crawler
 
                 tasksLock.EnterWriteLock();
 
+                queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.Processing);
+
                 tasks.Add(TaskExtensions.Unwrap(
                     CrawlAsync(queueItem.ResourceLink)
                         .ContinueWith(async task =>
@@ -97,7 +93,6 @@ namespace Rezgar.Crawler
                                 if (task.Status == TaskStatus.RanToCompletion)
                                 {
                                     var resourceContentUnits = task.Result;
-
                                     var httpResultUnit = resourceContentUnits.OfType<HttpResultUnit>().Single();
 
                                     // Process resource content units extracted from Response
@@ -173,7 +168,11 @@ namespace Rezgar.Crawler
                                                     //case HttpStatusCode.InternalServerError: // it's likely to repeat within the same run
                                                     case HttpStatusCode.GatewayTimeout:
                                                     case HttpStatusCode.RequestTimeout:
+                                                        queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.NotLinked);
                                                         crawlingQueue.EnqueueAsync(queueItem); // Trying to recrawl item if it failed for some intermitent reason
+                                                        break;
+                                                    default:
+                                                        queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.ProcessingCompleted);
                                                         break;
                                                 }
                                                 break;
@@ -206,11 +205,8 @@ namespace Rezgar.Crawler
         public static async Task<IList<ResourceContentUnit>> CrawlAsync(ResourceLink resourceLink, bool processResponse = true)
         {
             var webRequest = WebRequest.Create(resourceLink.Uri) as HttpWebRequest;
-            
-            // TODO: Proxy
-            
-            resourceLink.Config.CrawlingSettings
-                .SetUpWebRequest(webRequest, resourceLink);
+
+            resourceLink.SetUpWebRequest(webRequest);
 
             return await TaskExtensions.Unwrap(
                     webRequest.GetResponseAsync()
@@ -265,86 +261,6 @@ namespace Rezgar.Crawler
         #endregion
 
         #region Private
-
-        /// <summary>
-        /// Initialize all active WebsiteConfigs (extract initialization data if any)
-        /// Since we're going to process the general queue, which contains links of all configs
-        /// </summary>
-        private async Task InitializeAsync(CrawlingConfiguration crawlingConfiguration)
-        {
-            var tasks = new List<Task>();
-            foreach (var config in crawlingConfiguration.WebsiteConfigs.Values)
-            {
-                // Initializing config
-                if (config.InitializationDocumentLink != null)
-                {
-                    tasks.Add(
-                        TaskExtensions.Unwrap(
-                            CrawlAsync(config.InitializationDocumentLink)
-                            .ContinueWith(async initializationDataTask =>
-                            {
-                                if (initializationDataTask.Status == TaskStatus.RanToCompletion)
-                                {
-                                    foreach (var extractedUnit in initializationDataTask.Result)
-                                    {
-                                        switch (extractedUnit)
-                                        {
-                                            case ExtractedDataUnit extractedDataUnit:
-                                                foreach (var record in extractedDataUnit.ExtractedData)
-                                                    config.PredefinedValues.Dictionary[record.Key] = record.Value;
-                                                break;
-                                            case ExtractedLinksUnit extractedLinkUnit:
-                                                await Task.WhenAll(
-                                                    extractedLinkUnit.ExtractedLinks
-                                                    .Select(link => CrawlAsync(link, false))
-                                                    .ToArray()
-                                                );
-                                                break;
-                                        }
-                                    }
-                                }
-                            }))
-                    );
-                }
-
-                // Initializing jobs
-                foreach(var job in config.Jobs)
-                {
-                    if (job.InitializationDocumentLink != null)
-                    {
-                        tasks.Add(
-                            TaskExtensions.Unwrap(
-                                CrawlAsync(job.InitializationDocumentLink)
-                                .ContinueWith(async initializationDataTask =>
-                                {
-                                    if (initializationDataTask.Status == TaskStatus.RanToCompletion)
-                                    {
-                                        foreach (var extractedUnit in initializationDataTask.Result)
-                                        {
-                                            switch (extractedUnit)
-                                            {
-                                                case ExtractedDataUnit extractedDataUnit:
-                                                    foreach (var record in extractedDataUnit.ExtractedData)
-                                                        job.PredefinedValues.Dictionary[record.Key] = record.Value;
-                                                    break;
-                                                case ExtractedLinksUnit extractedLinkUnit:
-                                                    await Task.WhenAll(
-                                                        extractedLinkUnit.ExtractedLinks
-                                                        .Select(link => CrawlAsync(link, false))
-                                                        .ToArray()
-                                                    );
-                                                    break;
-                                            }
-                                        }
-                                    }
-                                }))
-                        );
-                    }
-                }
-            }
-
-            await Task.WhenAll(tasks);
-        }
 
         #endregion
 

@@ -1,6 +1,5 @@
 ﻿using Rezgar.Crawler.Download.ResourceContentUnits;
 using Rezgar.Crawler.Download.ResourceLinks;
-using Rezgar.Crawler.Queue;
 using Rezgar.Utils.Collections;
 using System;
 using System.Collections.Generic;

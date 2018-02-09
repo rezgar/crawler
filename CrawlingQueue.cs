@@ -1,5 +1,4 @@
-﻿using Rezgar.Crawler.Configuration;
-using Rezgar.Crawler.Download;
+﻿using Rezgar.Crawler.Download;
 using Rezgar.Crawler.Queue;
 using System;
 using System.Collections.Concurrent;
@@ -19,31 +18,41 @@ namespace Rezgar.Crawler
 
         private System.Threading.ReaderWriterLockSlim _queueLock = new System.Threading.ReaderWriterLockSlim(System.Threading.LockRecursionPolicy.SupportsRecursion);
 
-        public ConcurrentQueue<CrawlingQueueItem> LocalQueue = new ConcurrentQueue<CrawlingQueueItem>();
-        public ICrawlingQueueProxy CrawlingQueueProxy;
+        public readonly ConcurrentQueue<CrawlingQueueItem> LocalQueue = new ConcurrentQueue<CrawlingQueueItem>();
 
-        public CrawlingConfiguration CrawlingConfiguration;
-        public CrawlingProxyManager CrawlingProxyManager;
+        public readonly IList<QueueProxy> QueueProxies;
+        public IEnumerable<IWriteQueueProxy> QueueProxiesWrite => QueueProxies.OfType<IWriteQueueProxy>();
+        public IEnumerable<QueueProxy> QueueProxiesAvailable => QueueProxies.Where(pred => pred.Status == QueueProxy.Statuses.Inactive);
+
+        public readonly CrawlingConfiguration CrawlingConfiguration;
+        public readonly CrawlingProxyServerManager ProxyServerManager;
 
         public readonly CancellationTokenSource QueueCancellationTokenSource = new CancellationTokenSource();
 
-        public CrawlingQueue(CrawlingConfiguration crawlingConfiguration, CrawlingProxyManager crawlingProxyManager, ICrawlingQueueProxy crawlingQueueProxy = null)
+        public CrawlingQueue(
+            CrawlingConfiguration crawlingConfiguration, 
+            CrawlingProxyServerManager proxyServerManager, 
+            ICollection<QueueProxy> queueProxies
+        )
         {
             CrawlingConfiguration = crawlingConfiguration;
-            CrawlingProxyManager = crawlingProxyManager;
-            CrawlingQueueProxy = crawlingQueueProxy;
+            ProxyServerManager = proxyServerManager;
+            QueueProxies = new List<QueueProxy>(queueProxies);
         }
 
         public void EnqueueAsync(CrawlingQueueItem queueItem)
         {
+            var writeQueueProxy = QueueProxiesWrite.FirstOrDefault();
+
             // if too many in queue already and proxy present, add to proxy (global azure queue), else add to local queue
-            if (CrawlingQueueProxy != null && LocalQueue.Count >= MaxLocalQueueSize)
+            if (writeQueueProxy != null && LocalQueue.Count >= MaxLocalQueueSize)
             {
-                CrawlingQueueProxy.EnqueueAsync(queueItem, QueueCancellationTokenSource) // No need to wait for the operation to complete successfully
+                writeQueueProxy.EnqueueAsync(queueItem, QueueCancellationTokenSource) // No need to wait for the operation to complete successfully
                     .ContinueWith(pred =>
                     {
                         if (pred.Status != TaskStatus.RanToCompletion)
                         {
+                            queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.InLocalQueue);
                             LocalQueue.Enqueue(queueItem);
                         }
                     })
@@ -55,6 +64,7 @@ namespace Rezgar.Crawler
             }
             else
             {
+                queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.InLocalQueue);
                 LocalQueue.Enqueue(queueItem);
             }
         }
@@ -63,29 +73,44 @@ namespace Rezgar.Crawler
         {
             // if too few elements in local queue, request an async load of additional portion from global queue
             // check if 0 elements in queue. if yes, wait a bit for async load to finish and quit if still 0
-            
-            if (CrawlingQueueProxy != null && LocalQueue.Count <= MinLocalQueueSizeBeforeFetch)
+
+            if (QueueProxiesAvailable.Any() && LocalQueue.Count <= MinLocalQueueSizeBeforeFetch)
             {
                 _queueLock.EnterWriteLock();
 
-                if (LocalQueue.Count <= MinLocalQueueSizeBeforeFetch) // Double check because threads might be stuck in attempt to enterwritelock, while one thread is fetching data
+                var recordsFetched = 0;
+                // Wait while at least one of QueueProxy tasks fetches some links to crawl
+                var fetchTasks = QueueProxiesAvailable.Select(async queueProxy =>
                 {
-                    CrawlingQueueProxy.FetchAsync(MaxLocalQueueSize - LocalQueue.Count, QueueCancellationTokenSource)
-                        .ContinueWith(task =>
+                    try
+                    {
+                        var records = await queueProxy.FetchAsync(MaxLocalQueueSize - LocalQueue.Count, QueueCancellationTokenSource);
+                        foreach (var record in records)
                         {
-                            if (task.Status == TaskStatus.RanToCompletion)
-                            {
-                                foreach (var record in task.Result)
-                                {
-                                    LocalQueue.Enqueue(record);
-                                }
+                            record.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.InLocalQueue);
+                            LocalQueue.Enqueue(record);
+                        }
+                        recordsFetched += records.Count;
+                        return records.Count > 0;
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.TraceError("CrawlingQueue.DequeueAsync.FetchAsync: Fetch from remote queue failed with exception {0}", ex);
+                    }
 
-                                _queueLock.ExitWriteLock();
-                            }
-                            else
-                                Trace.TraceError("CrawlingQueue.DequeueAsync.FetchAsync: Fetch from remote queue failed with exception {0}", task.Exception);
-                        });
+                    return false;
+                })
+                .ToArray();
+
+                while(!
+                    (fetchTasks.All(fetchTask => fetchTask.Status == TaskStatus.RanToCompletion)
+                    || recordsFetched > 0)
+                )
+                {
+                    Task.WaitAny(fetchTasks);
                 }
+                
+                _queueLock.ExitWriteLock();
             }
 
             CrawlingQueueItem result;

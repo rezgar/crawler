@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Rezgar.Utils.Collections;
 using HtmlAgilityPack;
-using Rezgar.Crawler.Configuration;
 using System.Xml.XPath;
 using Rezgar.Crawler.Download.ResourceLinks;
 using System.Text.RegularExpressions;

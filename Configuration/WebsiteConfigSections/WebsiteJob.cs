@@ -1,6 +1,5 @@
 ﻿using Rezgar.Crawler.Download;
 using Rezgar.Crawler.Download.ResourceLinks;
-using Rezgar.Crawler.Queue;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,20 +9,13 @@ using System.Threading.Tasks;
 
 namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
 {
-    public class WebsiteJob
+    public class WebsiteJob : CrawlingBase
     {
         #region Variables & Properties
 
         public string Name = "default";
 
         public WebsiteConfig Config;
-
-        //public Dictionary<string, CrawlingConditional> Conditionals;
-        internal CrawlingPredefinedValues PredefinedValues = new CrawlingPredefinedValues();
-        internal IList<ResourceLink> EntryLinks = new List<ResourceLink>();
-        internal DocumentLink InitializationDocumentLink;
-
-        internal Download.CrawlingState CrawlingState = new CrawlingState();
 
         #endregion
 
@@ -44,7 +36,7 @@ namespace Rezgar.Crawler.Configuration.WebsiteConfigSections
                 EntryLinks.Add(entryLinkCopy);
             }
 
-            InitializationDocumentLink = template.InitializationDocumentLink?.Copy() as DocumentLink; // is stateless, so we don't have to create a new object
+            InitializationDocumentLink = template.InitializationDocumentLink?.Copy() as InitializationLink; // is stateless, so we don't have to create a new object
             if (InitializationDocumentLink != null)
                 InitializationDocumentLink.Job = this;
         }

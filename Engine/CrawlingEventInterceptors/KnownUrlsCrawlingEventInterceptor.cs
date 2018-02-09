@@ -1,5 +1,4 @@
-﻿using Rezgar.Crawler.Configuration;
-using Rezgar.Utils.Collections;
+﻿using Rezgar.Utils.Collections;
 using Rezgar.Utils.MessageQueue;
 using System;
 using System.Collections.Concurrent;

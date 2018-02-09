@@ -1,5 +1,4 @@
 ﻿using Rezgar.Crawler.Configuration;
-using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Utils.Collections;
 using SmartFormat;
 using System;

@@ -4,7 +4,6 @@ using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Crawler.DataExtraction.PostProcessors;
 using Rezgar.Crawler.Download;
 using Rezgar.Crawler.Download.ResourceLinks;
-using Rezgar.Crawler.Queue;
 using Rezgar.Utils.Collections;
 using Rezgar.Utils.Parsing.Xml;
 using System;
@@ -287,9 +286,9 @@ namespace Rezgar.Crawler.Configuration
 
         #region Initialization Settings
 
-        private static DocumentLink ReadInitializationDocumentSection(XmlReader reader, WebsiteConfig config, WebsiteJob job)
+        private static InitializationLink ReadInitializationDocumentSection(XmlReader reader, WebsiteConfig config, WebsiteJob job)
         {
-            var result = new DocumentLink(
+            var result = new InitializationLink(
                 reader.GetAttribute("url"),
                 reader.GetAttribute<string>("method", System.Net.WebRequestMethods.Http.Get),
                 null,
@@ -335,12 +334,15 @@ namespace Rezgar.Crawler.Configuration
 
         private static void ReadWebsiteJobsSectionIntoConfig(XmlTextReader reader, WebsiteConfig config)
         {
-            while (!(reader.Name == "jobs" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
+            config.JobsProcessedInParallel = reader.GetAttribute("parallelism", (int?)null);
+
+            var sectionRootNodeName = reader.Name;
+            while (!(reader.Name == sectionRootNodeName && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
             {
                 if (!reader.IsStartElement())
                     continue;
 
-                switch(reader.Name)
+                switch (reader.Name)
                 {
                     case "job":
                         var job = ReadWebsiteJobNode(reader, config);
