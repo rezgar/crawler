@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Rezgar.Utils.Collections;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
@@ -18,7 +19,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
 
         const string JsEval = @"function Eval(expr) { return eval(expr); }";
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
             return EvalAction.Execute(EvalParams, value);
         }

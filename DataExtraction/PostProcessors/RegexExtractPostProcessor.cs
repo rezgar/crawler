@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -38,7 +39,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             MatchProcessingMode = matchProcessingMode;
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
             var options = RegexOptions.Compiled;
 

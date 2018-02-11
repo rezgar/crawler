@@ -1,6 +1,6 @@
 ﻿using Rezgar.Crawler.Configuration;
 using Rezgar.Crawler.Configuration.WebsiteConfigSections;
-using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using Rezgar.Crawler.Download.ResourceContentUnits;
 using Rezgar.Utils.Collections;
 using System;
@@ -17,18 +17,33 @@ namespace Rezgar.Crawler.Download.ResourceLinks
         private CrawlingBase _crawlingBase => Job as CrawlingBase ?? Config as CrawlingBase;
 
         public InitializationLink(
-            StringWithDependencies url, 
-            string httpMethod, 
-            IDictionary<string, StringWithDependencies> parameters, 
-            IDictionary<string, StringWithDependencies> headers, 
-            
-            WebsiteConfig config, 
-            WebsiteJob job, 
-            bool extractLinks, 
-            bool extractData, 
+            string url,
+            string httpMethod,
+            IDictionary<string, string> parameters,
+            IDictionary<string, string> headers,
+            bool extractLinks,
+            bool extractData,
+            WebsiteConfig config,
+            WebsiteJob job,
             CollectionDictionary<string, string> preExtractedItems = null
-        ) 
-            : base(url, httpMethod, parameters, headers, config, job, extractLinks, extractData, preExtractedItems, null)
+        )
+            : base(url, httpMethod, parameters, headers, extractLinks, extractData, config, job, preExtractedItems, null)
+        {
+
+        }
+
+        public InitializationLink(
+            StringWithDependencies urlWithDependencies,
+            string httpMethod,
+            IDictionary<string, StringWithDependencies> parametersWithDependencies,
+            IDictionary<string, StringWithDependencies> headersWithDependencies,
+            bool extractLinks,
+            bool extractData,
+            WebsiteConfig config,
+            WebsiteJob job,
+            CollectionDictionary<string, StringWithDependencies> preExtractedItemsWithDependencies = null
+        )
+            : base(urlWithDependencies, httpMethod, parametersWithDependencies, headersWithDependencies, extractLinks, extractData, config, job, preExtractedItemsWithDependencies, null)
         {
 
         }
@@ -63,16 +78,23 @@ namespace Rezgar.Crawler.Download.ResourceLinks
         public override ResourceLink Copy()
         {
             var result = new InitializationLink(
-                Url,
+                null,
                 HttpMethod,
-                Parameters?.ToDictionary(pred => pred.Key, pred => pred.Value),
-                Headers?.ToDictionary(pred => pred.Key, pred => pred.Value),
-                Config,
-                Job,
+                null,
+                null,
                 ExtractLinks,
                 ExtractData,
-                PreExtractedItems != null ? new CollectionDictionary<string, string>(PreExtractedItems) : null
+                Config,
+                Job,
+                null
             );
+
+            result.CopyBaseData(this);
+
+            if (PreExtractedItems != null)
+                result.PreExtractedItems = new CollectionDictionary<string, string>(PreExtractedItems);
+            if (PreExtractedItemsWithDependencies != null)
+                result.PreExtractedItemsWithDependencies = new CollectionDictionary<string, StringWithDependencies>(PreExtractedItemsWithDependencies);
 
             result.ExtractionItemsOverride = ExtractionItemsOverride.ToDictionary(pred => pred.Key, pred => pred.Value);
 

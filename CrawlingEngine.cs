@@ -9,7 +9,6 @@ using Rezgar.Crawler.Queue;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Net;
-using Rezgar.Crawler.DataExtraction;
 using Rezgar.Crawler.Download.ResourceContentUnits;
 using Rezgar.Crawler.Download.ResourceLinks;
 using System.Diagnostics;

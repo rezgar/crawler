@@ -1,6 +1,6 @@
 ﻿using Rezgar.Crawler.Configuration;
 using Rezgar.Crawler.Configuration.WebsiteConfigSections;
-using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using Rezgar.Crawler.Download.ResourceContentUnits;
 using Rezgar.Utils.Collections;
 using Rezgar.Utils.Http;
@@ -15,9 +15,14 @@ namespace Rezgar.Crawler.Download
 {
     public abstract class ResourceLink
     {
-        public readonly StringWithDependencies Url;
-        public readonly IDictionary<string, StringWithDependencies> Parameters;
-        public readonly IDictionary<string, StringWithDependencies> Headers;
+        public virtual string Url { get; protected set; }
+        public virtual IDictionary<string, string> Parameters { get; protected set; }
+        public virtual IDictionary<string, string> Headers { get; protected set; }
+
+        public StringWithDependencies UrlWithDependencies { get; protected set; }
+        public IDictionary<string, StringWithDependencies> ParametersWithDependencies { get; protected set; }
+        public IDictionary<string, StringWithDependencies> HeadersWithDependencies { get; protected set; }
+
         public readonly string HttpMethod;
         public readonly WebsiteConfig Config;
         public WebsiteJob Job; // can be set when job is copied
@@ -41,7 +46,15 @@ namespace Rezgar.Crawler.Download
             }
         }
 
-        public ResourceLink(StringWithDependencies url, string httpMethod, IDictionary<string, StringWithDependencies> parameters, IDictionary<string, StringWithDependencies> headers, WebsiteConfig config, WebsiteJob job, ResourceLink referrerResourceLink)
+        public ResourceLink(
+            string url, 
+            string httpMethod, 
+            IDictionary<string, string> parameters, 
+            IDictionary<string, string> headers,
+            WebsiteConfig config, 
+            WebsiteJob job, 
+            ResourceLink referrerResourceLink
+        )
         {
             Url = url;
             HttpMethod = httpMethod;
@@ -53,7 +66,38 @@ namespace Rezgar.Crawler.Download
             UserAgent = referrerResourceLink?.UserAgent ?? config.CrawlingSettings.UserAgents.GetRandomElement();
         }
 
+
+        public ResourceLink(
+            StringWithDependencies urlWithDependencies,
+            string httpMethod,
+            IDictionary<string, StringWithDependencies> parametersWithDependencies,
+            IDictionary<string, StringWithDependencies> headersWithDependencies,
+            WebsiteConfig config,
+            WebsiteJob job,
+            ResourceLink referrerResourceLink
+        ) : this (null, httpMethod, null, null, config, job, referrerResourceLink)
+        {
+            UrlWithDependencies = urlWithDependencies;
+            ParametersWithDependencies = parametersWithDependencies;
+            HeadersWithDependencies = headersWithDependencies;
+        }
+
         public abstract ResourceLink Copy();
+        protected void CopyBaseData(ResourceLink fromObject)
+        {
+            Url = fromObject.Url;
+            UrlWithDependencies = fromObject.UrlWithDependencies;
+
+            if (fromObject.Parameters != null)
+                Parameters = new Dictionary<string, string>(fromObject.Parameters);
+            if (fromObject.ParametersWithDependencies != null)
+                ParametersWithDependencies = new Dictionary<string, StringWithDependencies>(fromObject.ParametersWithDependencies);
+
+            if (fromObject.Headers != null)
+                Headers = new Dictionary<string, string>(fromObject.Headers);
+            if (fromObject.HeadersWithDependencies != null)
+                HeadersWithDependencies = new Dictionary<string, StringWithDependencies>(fromObject.HeadersWithDependencies);
+        }
 
         #region HTTP
 
@@ -175,6 +219,14 @@ namespace Rezgar.Crawler.Download
         }
 
         #endregion
+
+
+        public virtual void Resolve(DependencyDataSource dependencyDataSource)
+        {
+            Url = dependencyDataSource.Resolve(UrlWithDependencies);
+            Parameters = ParametersWithDependencies.ToDictionary(pred => pred.Key, pred => dependencyDataSource.Resolve(pred.Value));
+            Headers = HeadersWithDependencies.ToDictionary(pred => pred.Key, pred => dependencyDataSource.Resolve(pred.Value));
+        }
 
         public override string ToString()
         {

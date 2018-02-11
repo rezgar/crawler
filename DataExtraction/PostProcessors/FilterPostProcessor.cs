@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,11 +18,11 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             NotEqualTo = notEqualTo;
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
             if (
-                (EqualTo == null || value == EqualTo) &&
-                (NotEqualTo == null || value != NotEqualTo)
+                (EqualTo == null || value == dependencyDataSource.Resolve(EqualTo)) &&
+                (NotEqualTo == null || value != dependencyDataSource.Resolve(NotEqualTo))
             )
                 yield return value;
         }

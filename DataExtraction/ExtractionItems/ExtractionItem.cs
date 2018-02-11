@@ -1,4 +1,5 @@
 ﻿using Rezgar.Crawler.Configuration.WebsiteConfigSections;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using System;
 using System.Collections.Generic;
 using System.Linq;

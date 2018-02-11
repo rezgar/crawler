@@ -1,5 +1,6 @@
 ﻿using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Crawler.DataExtraction.PostProcessors;
 using Rezgar.Crawler.Download;
@@ -293,10 +294,10 @@ namespace Rezgar.Crawler.Configuration
                 reader.GetAttribute<string>("method", System.Net.WebRequestMethods.Http.Get),
                 null,
                 null,
-                config,
-                job,
                 true,
-                true
+                true,
+                config,
+                job
             );
 
             result.ExtractionItemsOverride = new Dictionary<string, ExtractionItem>();
@@ -644,20 +645,37 @@ namespace Rezgar.Crawler.Configuration
                 {
                     case "link":
                         var extractionLink = ReadExtractionLinkSection(reader, config);
-                        var linkExtractedItems = new CollectionDictionary<string, string>();
+                        var linkExtractedItems = new CollectionDictionary<string, StringWithDependencies>();
                         foreach (var extractionItem in extractionLink.PredefinedExtractionItems.Values)
                         {
                             linkExtractedItems.AddValue(extractionItem.Name, extractionItem.Value);
                         }
 
+                        var dependencyDataSource = new DependencyDataSource(
+                            linkExtractedItems
+                                .Where(pred => pred.Value.Any(value => !value.RequiresResolve))
+                                .ToCollectionDictionary(
+                                    pred => pred.Key, 
+                                    pred => pred.Value
+                                                .Where(value => !value.RequiresResolve)
+                                                .Select(sel => sel.FormatString)
+                                ), 
+                            config.PredefinedValues, 
+                            job.PredefinedValues
+                        );
+
                         // NOTE: These are entry links, so they can't have any location to extract items from, only constant values
                         var extractedLink = new AutoDetectLink(
-                            extractionLink.Value,
+                            dependencyDataSource.Resolve(extractionLink.Value),
+                            extractionLink.HttpMethod,
+                            dependencyDataSource.Resolve(extractionLink.Parameters),
+                            dependencyDataSource.Resolve(extractionLink.Headers),
+                            extractionLink.ExtractLinks,
+                            extractionLink.ExtractData,
                             config,
                             job,
-                            extractionLink,
-                            linkExtractedItems,
-                            config.InitializationDocumentLink
+                            dependencyDataSource.Resolve(linkExtractedItems),
+                            (job as CrawlingBase ?? config)?.InitializationDocumentLink
                         );
 
                         result.Add(extractedLink);

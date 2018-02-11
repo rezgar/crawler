@@ -2,6 +2,7 @@
 using Rezgar.Crawler.Download.ResourceLinks;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -59,7 +60,16 @@ namespace Rezgar.Crawler.Queue.QueueProxies
             // On first fetch returns only InitializationQueueItem.
             if (InitializationLink != null)
             {
-                await CrawlingEngine.CrawlAsync(InitializationLink);
+                try
+                {
+                    await CrawlingEngine.CrawlAsync(InitializationLink);
+                }
+                catch(Exception ex)
+                {
+                    Trace.TraceError($"{GetType().Name}.FetchAsync: Initialization failed for link {InitializationLink.Url} (Config: {InitializationLink.Config.Name}, Job: {InitializationLink.Job?.Name}) with exception [{ex}]");
+                    ChangeStatus(Statuses.Error);
+                    return new CrawlingQueueItem[] { };
+                }
             }
 
             var queueItems = QueueItemsAvailable.ToArray();

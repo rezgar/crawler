@@ -1,10 +1,11 @@
 ﻿using Rezgar.Crawler.Configuration;
 using Rezgar.Crawler.Configuration.WebsiteConfigSections;
-using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Utils.Collections;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,8 +14,10 @@ namespace Rezgar.Crawler.Download.ResourceLinks
 {
     public class AutoDetectLink : ResourceLink
     {
-        public readonly ExtractionLink ExtractionLink;
-        public readonly CollectionDictionary<string, string> PreExtractedItems;
+        public CollectionDictionary<string, string> PreExtractedItems { get; protected set; }
+        public CollectionDictionary<string, StringWithDependencies> PreExtractedItemsWithDependencies { get; protected set; }
+        public readonly bool ExtractLinks;
+        public readonly bool ExtractData;
 
         public new DocumentLink ReferrerResourceLink
         {
@@ -22,11 +25,42 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             set => base.ReferrerResourceLink = value;
         }
 
-        public AutoDetectLink(string url, WebsiteConfig config, WebsiteJob job, ExtractionLink extractionLink, CollectionDictionary<string, string> preExtractedItems, DocumentLink referrerDocumentLink = null)
-            : base(url, extractionLink.HttpMethod, extractionLink.Parameters, extractionLink.Headers, config, job, referrerDocumentLink)
+        public AutoDetectLink(
+            string url, 
+            string httpMethod,
+            IDictionary<string, string> parameters,
+            IDictionary<string, string> headers,
+            bool extractLinks,
+            bool extractData,
+            WebsiteConfig config, 
+            WebsiteJob job, 
+            CollectionDictionary<string, string> preExtractedItems, 
+            DocumentLink referrerDocumentLink = null
+        )
+            : base(url, httpMethod, parameters, headers, config, job, referrerDocumentLink)
         {
-            ExtractionLink = extractionLink;
+            ExtractLinks = extractLinks;
+            ExtractData = extractData;
             PreExtractedItems = preExtractedItems;
+        }
+        
+        public AutoDetectLink(
+            StringWithDependencies urlWithDependencies,
+            string httpMethod,
+            IDictionary<string, StringWithDependencies> parametersWithDependencies,
+            IDictionary<string, StringWithDependencies> headersWithDependencies,
+            bool extractLinks,
+            bool extractData,
+            WebsiteConfig config,
+            WebsiteJob job,
+            CollectionDictionary<string, StringWithDependencies> preExtractedItemsWithDependencies,
+            DocumentLink referrerDocumentLink = null
+        ) 
+            : base(urlWithDependencies, httpMethod, parametersWithDependencies, headersWithDependencies, config, job, referrerDocumentLink)
+        {
+            ExtractLinks = extractLinks;
+            ExtractData = extractData;
+            PreExtractedItemsWithDependencies = preExtractedItemsWithDependencies;
         }
 
         public override Task<IList<ResourceContentUnit>> ProcessWebResponseAsync(WebResponse webResponse)
@@ -37,13 +71,13 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             {
                 var pageLink = new DocumentLink(
                     Url,
-                    ExtractionLink.HttpMethod,
-                    ExtractionLink.Parameters,
-                    ExtractionLink.Headers,
+                    HttpMethod,
+                    Parameters,
+                    Headers,
+                    ExtractLinks,
+                    ExtractData,
                     Config,
                     Job,
-                    ExtractionLink.ExtractLinks,
-                    ExtractionLink.ExtractData,
                     PreExtractedItems,
                     ReferrerResourceLink
                 );
@@ -54,8 +88,8 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             {
                 var fileLink = new FileLink(
                     Url,
-                    ExtractionLink.Parameters,
-                    ExtractionLink.Headers,
+                    Parameters,
+                    Headers,
                     Config,
                     Job,
                     ReferrerResourceLink
@@ -65,9 +99,38 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             }
         }
 
+        public override void Resolve(DependencyDataSource dependencyDataSource)
+        {
+            base.Resolve(dependencyDataSource);
+            PreExtractedItems = PreExtractedItemsWithDependencies.ToCollectionDictionary(
+                pred => pred.Key,
+                pred => pred.Value.Select(value => dependencyDataSource.Resolve(value))
+            );
+        }
+
         public override ResourceLink Copy()
         {
-            return new AutoDetectLink(Url, Config, Job, ExtractionLink, new CollectionDictionary<string, string>(PreExtractedItems), ReferrerResourceLink?.Copy() as DocumentLink);
+            var result = new AutoDetectLink(
+                null, 
+                HttpMethod,
+                null,
+                null, 
+                ExtractLinks, 
+                ExtractData,
+                Config, 
+                Job,
+                null, 
+                ReferrerResourceLink?.Copy() as DocumentLink
+            );
+
+            result.CopyBaseData(this);
+
+            if (PreExtractedItems != null)
+                result.PreExtractedItems = new CollectionDictionary<string, string>(PreExtractedItems);
+            if (PreExtractedItemsWithDependencies != null)
+                result.PreExtractedItemsWithDependencies = new CollectionDictionary<string, StringWithDependencies>(PreExtractedItemsWithDependencies);
+
+            return result;
         }
     }
 }

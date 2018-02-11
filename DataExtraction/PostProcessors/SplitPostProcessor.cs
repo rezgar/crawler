@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,9 +19,9 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             IgnoreEmptyEntries = ignoreEmptyEntries;
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
-            return value.Split(new string[] { Separator }, IgnoreEmptyEntries ? StringSplitOptions.RemoveEmptyEntries : StringSplitOptions.None);
+            return value.Split(dependencyDataSource.ResolveAll(Separator).ToArray(), IgnoreEmptyEntries ? StringSplitOptions.RemoveEmptyEntries : StringSplitOptions.None);
         }
 
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()

@@ -1,4 +1,5 @@
 ﻿using Rezgar.Crawler.Configuration;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using Rezgar.Crawler.DataExtraction.ExtractionItems;
 using Rezgar.Crawler.Download;
 using Rezgar.Crawler.Download.ResourceContentUnits;
@@ -23,6 +24,7 @@ namespace Rezgar.Crawler.DataExtraction
         protected DocumentLink _documentLink;
         protected DocumentTypes _documentType;
 
+        public readonly DependencyDataSource DependencyDataSource;
         public CollectionDictionary<string, ResourceLink> ExtractedLinks = new CollectionDictionary<string, ResourceLink>();
         public CollectionDictionary<string, ResourceLink> ExtractedFrames = new CollectionDictionary<string, ResourceLink>();
         public CollectionDictionary<string, string> ExtractedItems = new CollectionDictionary<string, string>();
@@ -37,6 +39,12 @@ namespace Rezgar.Crawler.DataExtraction
             if (documentLink.PreExtractedItems != null)
                 foreach (var kvp in documentLink.PreExtractedItems)
                     ExtractedItems.AddValues(kvp.Key, kvp.Value);
+
+            DependencyDataSource = new DependencyDataSource(
+                ExtractedItems,
+                documentLink.Config.PredefinedValues,
+                documentLink.Job?.PredefinedValues
+            );
         }
 
         #region Public 
@@ -59,6 +67,7 @@ namespace Rezgar.Crawler.DataExtraction
         protected void ExtractItems()
         {
             var extractionItems = _documentLink.ExtractionItemsOverride ?? _documentLink.Config.ExtractionItems;
+
             foreach (var extractionItem in extractionItems.Values)
             {
                 var extract = false;
@@ -128,7 +137,7 @@ namespace Rezgar.Crawler.DataExtraction
                             IEnumerable<string> result = new [] { frameResponse.Content };
                             if (extractionFrame.PostProcessOnDownload)
                             {
-                                result = PostProcess(result, extractionItem.PostProcessors);
+                                result = PostProcess(result, extractionItem.PostProcessors, DependencyDataSource);
                             }
 
                             return result.ToArray();
@@ -154,7 +163,7 @@ namespace Rezgar.Crawler.DataExtraction
 
             // constant value, if specified in config
             if (extractionItem.Value != null)
-                extractedValues.Add(extractionItem.Value);
+                extractedValues.Add(DependencyDataSource.Resolve(extractionItem.Value));
 
             // values, extracted from page using selector
             if (extractionItem.Location != null)
@@ -169,19 +178,21 @@ namespace Rezgar.Crawler.DataExtraction
                 {
                     // If Context is specified, we're creating a separate DocumentParser for every context item 
                     // Create once per Context item, not parse the document 10 times for each element extracted
-                    if (!ContextItemDocumentParsers.TryGetValue(extractionItem.Context.ContextItemName, out var contextDocumentParsers))
+                    var contextItemName = DependencyDataSource.Resolve(extractionItem.Context.ContextItemName);
+
+                    if (!ContextItemDocumentParsers.TryGetValue(contextItemName, out var contextDocumentParsers))
                     {
                         // Generate context parsers for this ContextItem if they have not been generated before
-                        ContextItemDocumentParsers[extractionItem.Context.ContextItemName]
+                        ContextItemDocumentParsers[contextItemName]
                             = contextDocumentParsers
                             = new List<DocumentProcessor>();
 
-                        var contextResourceFrames = ExtractedFrames[extractionItem.Context.ContextItemName];
+                        var contextResourceFrames = ExtractedFrames[contextItemName];
                         var contextDocumentLinks = contextResourceFrames.OfType<DocumentLink>().ToArray();
 
                         Debug.Assert(contextResourceFrames.Count == contextDocumentLinks.Length);
 
-                        var contextDocumentStrings = ExtractedItems.GetValues(extractionItem.Context.ContextItemName);
+                        var contextDocumentStrings = ExtractedItems.GetValues(contextItemName);
 
                         Debug.Assert(contextDocumentLinks.Length == contextDocumentStrings.Count);
 
@@ -226,7 +237,7 @@ namespace Rezgar.Crawler.DataExtraction
             extractedItems.AddValues(
                 extractionItem.Name, 
                 extractionItem.PostProcessOnExtraction
-                    ? PostProcess(extractedValues, extractionItem.PostProcessors)
+                    ? PostProcess(extractedValues, extractionItem.PostProcessors, DependencyDataSource)
                     : extractedValues
             );
         }
@@ -264,17 +275,39 @@ namespace Rezgar.Crawler.DataExtraction
                     switch (extractionLink.Type)
                     {
                         case ExtractionLink.LinkTypes.Document:
-                            resourceLink = new DocumentLink(url, extractionLink.HttpMethod, extractionLink.Parameters, extractionLink.Headers, _documentLink.Config, _documentLink.Job, extractionLink.ExtractLinks, extractionLink.ExtractData, linkScopedExtractedItems, _documentLink);
+                            resourceLink = new DocumentLink(
+                                url, 
+                                extractionLink.HttpMethod, 
+                                DependencyDataSource.Resolve(extractionLink.Parameters),
+                                DependencyDataSource.Resolve(extractionLink.Headers),
+                                extractionLink.ExtractLinks, 
+                                extractionLink.ExtractData, 
+                                _documentLink.Config, 
+                                _documentLink.Job, 
+                                linkScopedExtractedItems, 
+                                _documentLink
+                            );
                             break;
                         case ExtractionLink.LinkTypes.File:
-                            resourceLink = new FileLink(url, extractionLink.Parameters, extractionLink.Headers, _documentLink.Config, _documentLink.Job, _documentLink);
+                            resourceLink = new FileLink(
+                                url,
+                                DependencyDataSource.Resolve(extractionLink.Parameters),
+                                DependencyDataSource.Resolve(extractionLink.Headers), 
+                                _documentLink.Config, 
+                                _documentLink.Job, 
+                                _documentLink
+                            );
                             break;
                         case ExtractionLink.LinkTypes.Auto:
                             resourceLink = new AutoDetectLink(
                                 linkValue,
+                                extractionLink.HttpMethod,
+                                DependencyDataSource.Resolve(extractionLink.Parameters),
+                                DependencyDataSource.Resolve(extractionLink.Headers),
+                                extractionLink.ExtractLinks,
+                                extractionLink.ExtractData,
                                 _documentLink.Config,
                                 _documentLink.Job,
-                                extractionLink,
                                 linkScopedExtractedItems,
                                 _documentLink
                             );
@@ -292,7 +325,7 @@ namespace Rezgar.Crawler.DataExtraction
 
         #region Utility
 
-        private IEnumerable<string> PostProcess(IEnumerable<string> values, IList<PostProcessor> postProcessors)
+        private IEnumerable<string> PostProcess(IEnumerable<string> values, IList<PostProcessor> postProcessors, DependencyDataSource dependencyDataSource)
         {
             // apply post-processing, if specified
             foreach (var value in values)
@@ -301,7 +334,7 @@ namespace Rezgar.Crawler.DataExtraction
 
                 foreach (var postProcessor in postProcessors)
                 {
-                    valuesBeingProcessed = postProcessor.Execute(valuesBeingProcessed).ToArray();
+                    valuesBeingProcessed = postProcessor.Execute(valuesBeingProcessed, dependencyDataSource).ToArray();
                 }
 
                 foreach(var valueProcessed in valuesBeingProcessed)
@@ -316,6 +349,14 @@ namespace Rezgar.Crawler.DataExtraction
             ResponseParserPositionPointer? relativeLocationBase = null
         )
         {
+            // TODO:
+            // A MAJOR BUG!!!
+            // StringWithDependency objects are shared between threads and jobs
+            // Therefore, current strategy of "Resolving" it on extraction:
+            // 1) Changes instance value for everyone that might be using it
+            // 2) "Resolve" stores resolved data inside the object, 
+            //    so next resolve with new data does nothing since the string is already resolved
+
             // Links are extracted as dependencies as well (like normal extraction items)
             // ensure dependencies are extracted
             var stringsWithDependencies = extractionItem.GetStringsWithDependencies();
@@ -342,33 +383,6 @@ namespace Rezgar.Crawler.DataExtraction
                         );
                     }
                 }
-
-                #region Attempt to resolve dependency from Predefined values
-
-                if (_documentLink.Job != null)
-                    if (!stringWithDependencies.HasBeenResolved)
-                        if (!stringWithDependencies.Resolve(extractedItems, _documentLink.Job.PredefinedValues, false))
-                        {
-                            Trace.TraceError("ExtractSingleItem: Could not resolve item {0} with dependencies ({1}) based on extracted items {2}",
-                                extractionItem.Name,
-                                string.Join(",", stringsWithDependencies.Select(pred => pred.FormatString)),
-                                string.Join(",", extractedItems.Select(pred => string.Format("[{0}: {1}]", pred.Key, string.Join(",", pred.Value))))
-                            );
-                            return;
-                        }
-
-                if (!stringWithDependencies.HasBeenResolved)
-                    if (!stringWithDependencies.Resolve(extractedItems, _documentLink.Config.PredefinedValues, true))
-                    {
-                        Trace.TraceError("ExtractSingleItem: Could not resolve item {0} with dependencies ({1}) based on extracted items {2}",
-                            extractionItem.Name,
-                            string.Join(",", stringsWithDependencies.Select(pred => pred.FormatString)),
-                            string.Join(",", extractedItems.Select(pred => string.Format("[{0}: {1}]", pred.Key, string.Join(",", pred.Value))))
-                        );
-                        return;
-                    }
-
-                #endregion
             }
         }
 

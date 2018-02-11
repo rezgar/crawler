@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,13 +16,13 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             ReplacementValue = replacementValue;
         }
 
-        public override IEnumerable<string> Execute(IEnumerable<string> values)
+        public override IEnumerable<string> Execute(IEnumerable<string> values, DependencyDataSource dependencyDataSource)
         {
             if (!values.Any())
-                yield return ReplacementValue;
+                yield return dependencyDataSource.Resolve(ReplacementValue);
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
             throw new NotSupportedException();
         }

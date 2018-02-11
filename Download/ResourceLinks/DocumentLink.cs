@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Rezgar.Crawler.Configuration.WebsiteConfigSections;
 using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using Rezgar.Crawler.Configuration;
 using Rezgar.Crawler.Download.ResourceContentUnits;
 using Rezgar.Utils.Collections;
@@ -21,21 +22,21 @@ namespace Rezgar.Crawler.Download.ResourceLinks
         /// <summary>
         /// Values, extracted pre Link download
         /// </summary>
-        public readonly CollectionDictionary<string, string> PreExtractedItems;
+        public CollectionDictionary<string, string> PreExtractedItems { get; protected set; }
+        public CollectionDictionary<string, StringWithDependencies> PreExtractedItemsWithDependencies { get; protected set; }
         public IDictionary<string, ExtractionItem> ExtractionItemsOverride;
 
         public DocumentLink
         (
-            StringWithDependencies url,
+            string url,
             string httpMethod,
-            IDictionary<string, StringWithDependencies> parameters,
-            IDictionary<string, StringWithDependencies> headers,
-            WebsiteConfig config,
-            WebsiteJob job,
+            IDictionary<string, string> parameters,
+            IDictionary<string, string> headers,
             bool extractLinks,
             bool extractData,
-
-            CollectionDictionary<string, string> preExtractedItems = null,
+            WebsiteConfig config,
+            WebsiteJob job,
+            CollectionDictionary<string, string> preExtractedItems,
             DocumentLink referrerDocumentLink = null
         ) 
             : base(url, httpMethod, parameters, headers, config, job, referrerDocumentLink)
@@ -43,6 +44,25 @@ namespace Rezgar.Crawler.Download.ResourceLinks
             ExtractLinks = extractLinks;
             ExtractData = extractData;
             PreExtractedItems = preExtractedItems;
+        }
+
+        public DocumentLink(
+            StringWithDependencies urlWithDependencies,
+            string httpMethod,
+            IDictionary<string, StringWithDependencies> parametersWithDependencies,
+            IDictionary<string, StringWithDependencies> headersWithDependencies,
+            bool extractLinks,
+            bool extractData,
+            WebsiteConfig config,
+            WebsiteJob job,
+            CollectionDictionary<string, StringWithDependencies> preExtractedItemsWithDependencies,
+            DocumentLink referrerDocumentLink = null
+        )
+            : base(urlWithDependencies, httpMethod, parametersWithDependencies, headersWithDependencies, config, job, referrerDocumentLink)
+        {
+            ExtractLinks = extractLinks;
+            ExtractData = extractData;
+            PreExtractedItemsWithDependencies = preExtractedItemsWithDependencies;
         }
         
         public override async Task<IList<ResourceContentUnit>> ProcessWebResponseAsync(WebResponse webResponse)
@@ -68,20 +88,37 @@ namespace Rezgar.Crawler.Download.ResourceLinks
 
             return result;
         }
+        
+        public override void Resolve(DependencyDataSource dependencyDataSource)
+        {
+            base.Resolve(dependencyDataSource);
+            PreExtractedItems = PreExtractedItemsWithDependencies.ToCollectionDictionary(
+                pred => pred.Key,
+                pred => pred.Value.Select(value => dependencyDataSource.Resolve(value))
+            );
+        }
 
         public override ResourceLink Copy()
         {
             var result = new DocumentLink(
-                Url,
+                null,
                 HttpMethod,
-                Parameters?.ToDictionary(pred => pred.Key, pred => pred.Value),
-                Headers?.ToDictionary(pred => pred.Key, pred => pred.Value),
-                Config, 
-                Job,
+                null,
+                null,
                 ExtractLinks,
                 ExtractData,
-                PreExtractedItems != null ? new CollectionDictionary<string, string>(PreExtractedItems) : null
+                Config,
+                Job,
+                null,
+                ReferrerResourceLink?.Copy() as DocumentLink
             );
+
+            result.CopyBaseData(this);
+
+            if (PreExtractedItems != null)
+                result.PreExtractedItems = new CollectionDictionary<string, string>(PreExtractedItems);
+            if (PreExtractedItemsWithDependencies != null)
+                result.PreExtractedItemsWithDependencies = new CollectionDictionary<string, StringWithDependencies>(PreExtractedItemsWithDependencies);
 
             result.ExtractionItemsOverride = ExtractionItemsOverride.ToDictionary(pred => pred.Key, pred => pred.Value);
 

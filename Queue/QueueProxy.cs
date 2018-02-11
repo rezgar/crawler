@@ -25,7 +25,8 @@ namespace Rezgar.Crawler.Queue
         {
             Inactive,
             Fetching,
-            Depleted
+            Depleted,
+            Error
         }
 
         #endregion

@@ -1,4 +1,5 @@
-﻿using Rezgar.Utils.Collections;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using Rezgar.Utils.Collections;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -20,11 +21,11 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             : base(new DecimalParser())
         {
             MultiplierString = multiplier;
-            MultiplierDecimal = decimal.Parse(MultiplierString, CultureInfo.InvariantCulture);
         }
 
-        public override IEnumerable<string> Execute(decimal? value)
+        public override IEnumerable<string> Execute(decimal? value, DependencyDataSource dependencyDataSource)
         {
+            var multiplierDecimal = decimal.Parse(dependencyDataSource.Resolve(MultiplierString), CultureInfo.InvariantCulture);
             yield return ToString(value * MultiplierDecimal);
         }
 

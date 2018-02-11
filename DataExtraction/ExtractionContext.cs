@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,10 +10,10 @@ namespace Rezgar.Crawler.DataExtraction
 {
     public class ExtractionContext
     {
-        public string ContextItemName;
+        public StringWithDependencies ContextItemName;
         public DocumentTypes ContextDocumentType;
 
-        public ExtractionContext(string contextItemName, DocumentTypes contextDocumentType)
+        public ExtractionContext(StringWithDependencies contextItemName, DocumentTypes contextDocumentType)
         {
             ContextItemName = contextItemName;
             ContextDocumentType = contextDocumentType;

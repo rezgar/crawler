@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,9 +22,13 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             Value = value;
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
-            yield return Utils.Uri.QueryString.SetParameter(value, ParameterName, Value);
+            yield return Utils.Uri.QueryString.SetParameter(
+                value, 
+                dependencyDataSource.Resolve(ParameterName),
+                dependencyDataSource.Resolve(Value)
+            );
         }
 
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()

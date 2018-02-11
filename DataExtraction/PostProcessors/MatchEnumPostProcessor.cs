@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,11 +9,11 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
     public class MatchEnumPostProcessor : PostProcessor
     {
-        public readonly StringWithDependencies EnumTypeName;
+        public readonly string EnumTypeName;
         private readonly Type EnumType;
         private readonly IDictionary<string, int> EnumConstants;
 
-        public MatchEnumPostProcessor(StringWithDependencies enumTypeName)
+        public MatchEnumPostProcessor(string enumTypeName)
         {
             EnumTypeName = enumTypeName;
             EnumType = Type.GetType(EnumTypeName);
@@ -27,7 +28,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             }
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
             if (EnumConstants.ContainsKey(value))
                 yield return value;

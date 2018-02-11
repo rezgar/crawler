@@ -9,6 +9,7 @@ using System.Globalization;
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
 {
     using ParsePostProcessors;
+    using Rezgar.Crawler.DataExtraction.Dependencies;
     using Utils.Parsing;
     using Utils.Parsing.Parsers;
 
@@ -16,12 +17,12 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
     {
         public SumPostProcessor() : base(new DecimalParser("F")) { }
 
-        public override IEnumerable<string> Execute(IEnumerable<decimal?> values)
+        public override IEnumerable<string> Execute(IEnumerable<decimal?> values, DependencyDataSource dependencyDataSource)
         {
             yield return ToString(values.Sum());
         }
 
-        public override IEnumerable<string> Execute(decimal? value)
+        public override IEnumerable<string> Execute(decimal? value, DependencyDataSource dependencyDataSource)
         {
             throw new NotSupportedException();
         }

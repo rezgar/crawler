@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Rezgar.Crawler.Configuration.WebsiteConfigSections;
-using Rezgar.Crawler.DataExtraction;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using Rezgar.Crawler.Download.ResourceContentUnits;
 using System.IO;
 using Rezgar.Crawler.Configuration;
@@ -21,14 +21,26 @@ namespace Rezgar.Crawler.Download.ResourceLinks
         }
 
         public FileLink(
-            StringWithDependencies url,
-            IDictionary<string, StringWithDependencies> parameters,
-            IDictionary<string, StringWithDependencies> headers,
+            string url,
+            IDictionary<string, string> parameters,
+            IDictionary<string, string> headers,
             WebsiteConfig config,
             WebsiteJob job,
             DocumentLink referrerResourceLink
-        ) 
+        )
             : base(url, WebRequestMethods.Http.Get, parameters, headers, config, job, referrerResourceLink)
+        {
+        }
+
+        public FileLink(
+            StringWithDependencies urlWithDependencies,
+            IDictionary<string, StringWithDependencies> parametersWithDependencies,
+            IDictionary<string, StringWithDependencies> headersWithDependencies,
+            WebsiteConfig config,
+            WebsiteJob job,
+            DocumentLink referrerResourceLink
+        )
+            : base(urlWithDependencies, WebRequestMethods.Http.Get, parametersWithDependencies, headersWithDependencies, config, job, referrerResourceLink)
         {
         }
 
@@ -46,14 +58,18 @@ namespace Rezgar.Crawler.Download.ResourceLinks
 
         public override ResourceLink Copy()
         {
-            return new FileLink(
-                Url,
-                Parameters?.ToDictionary(pred => pred.Key, pred => pred.Value),
-                Headers?.ToDictionary(pred => pred.Key, pred => pred.Value),
+            var result = new FileLink(
+                null,
+                null,
+                null,
                 Config,
                 Job,
                 ReferrerResourceLink?.Copy() as DocumentLink
             );
+            
+            result.CopyBaseData(this);
+
+            return result;
         }
     }
 }

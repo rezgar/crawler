@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
@@ -15,21 +16,21 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             _dataParser = dataParser;
         }
 
-        public sealed override IEnumerable<string> Execute(IEnumerable<string> values)
+        public sealed override IEnumerable<string> Execute(IEnumerable<string> values, DependencyDataSource dependencyDataSource)
         {
-            return Execute(values.Select(_dataParser.Parse));
+            return Execute(values.Select(_dataParser.Parse), dependencyDataSource);
         }
-        public sealed override IEnumerable<string> Execute(string value)
+        public sealed override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
-            return Execute(_dataParser.Parse(value));
-        }
-
-        public virtual IEnumerable<string> Execute(IEnumerable<TDataType> values)
-        {
-            return values.SelectMany(Execute);
+            return Execute(_dataParser.Parse(value), dependencyDataSource);
         }
 
-        public virtual IEnumerable<string> Execute(TDataType value)
+        public virtual IEnumerable<string> Execute(IEnumerable<TDataType> values, DependencyDataSource dependencyDataSource)
+        {
+            return values.SelectMany(value => Execute(value, dependencyDataSource));
+        }
+
+        public virtual IEnumerable<string> Execute(TDataType value, DependencyDataSource dependencyDataSource)
         {
             yield return _dataParser.ToString(value);
         }

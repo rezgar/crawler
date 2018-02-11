@@ -1,4 +1,5 @@
-﻿using Rezgar.Utils.Collections;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using Rezgar.Utils.Collections;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             CaseSensitive = caseSensitive;
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
             var options = RegexOptions.Compiled;
 
@@ -30,10 +31,10 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
 
             var regex = new Regex(RegexPattern, options);
 
-            yield return regex.Replace(value, ReplaceValue);
+            yield return regex.Replace(value, dependencyDataSource.Resolve(ReplaceValue));
         }
 
-        #region Idependent
+        #region IDependent
 
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()
         {

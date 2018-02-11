@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rezgar.Crawler.DataExtraction.Dependencies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,12 +17,12 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
             Separator = separator;
         }
 
-        public override IEnumerable<string> Execute(IEnumerable<string> values)
+        public override IEnumerable<string> Execute(IEnumerable<string> values, DependencyDataSource dependencyDataSource)
         {
-            yield return string.Join(Separator, values);
+            yield return string.Join(dependencyDataSource.Resolve(Separator), values);
         }
 
-        public override IEnumerable<string> Execute(string value)
+        public override IEnumerable<string> Execute(string value, DependencyDataSource dependencyDataSource)
         {
             throw new NotSupportedException();
         }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Linq;
 using System.IO;
 using CsvHelper;
+using Rezgar.Crawler.DataExtraction.Dependencies;
 using Rezgar.Crawler.DataExtraction.PostProcessors.ParsePostProcessors;
 
 namespace Rezgar.Crawler.DataExtraction.PostProcessors
@@ -29,7 +30,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
 
         #region Overrides of PostProcessor
 
-        public override IEnumerable<string> Execute(CsvDocument value)
+        public override IEnumerable<string> Execute(CsvDocument value, DependencyDataSource dependencyDataSource)
         {
             var resultBuilder = new StringBuilder();
 
@@ -62,11 +63,11 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
 
                                     foreach (var postProcessor in columnTransitionOption.PostProcessors)
                                     {
-                                        sourceColumnValue = postProcessor.Execute(sourceColumnValue).SingleOrDefault();
+                                        sourceColumnValue = postProcessor.Execute(sourceColumnValue, dependencyDataSource).SingleOrDefault();
                                     }
                                 }
                                 
-                                resultColumnValue = sourceColumnValue ?? columnTransitionOption.Value;
+                                resultColumnValue = sourceColumnValue ?? dependencyDataSource.Resolve(columnTransitionOption.Value);
                                 if (resultColumnValue != null)
                                     break;
                             }
