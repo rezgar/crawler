@@ -14,6 +14,7 @@ using Rezgar.Crawler.Download.ResourceLinks;
 using System.Diagnostics;
 using Rezgar.Crawler.Engine;
 using Rezgar.Utils.Http;
+using Nito.AsyncEx;
 
 namespace Rezgar.Crawler
 {
@@ -43,8 +44,8 @@ namespace Rezgar.Crawler
             var tasksLock = new System.Threading.ReaderWriterLockSlim();
             var tasks = new HashSet<Task>();
             
-            var semaphore = new Semaphore(crawlingQueue.CrawlingConfiguration.MaxSimmultaneousQueueItemsProcessed / 2, crawlingQueue.CrawlingConfiguration.MaxSimmultaneousQueueItemsProcessed);
-            while(semaphore.WaitOne(crawlingQueue.CrawlingConfiguration.MaxTimeToProcessOneQueueItem))
+            var queueItemsProcessingSemaphore = new SemaphoreSlim(crawlingQueue.CrawlingConfiguration.MaxSimmultaneousQueueItemsProcessed / 2, crawlingQueue.CrawlingConfiguration.MaxSimmultaneousQueueItemsProcessed);
+            while(await queueItemsProcessingSemaphore.WaitAsync(crawlingQueue.CrawlingConfiguration.MaxTimeToProcessOneQueueItem))
             {
                 if (crawlingQueue.QueueCancellationTokenSource.IsCancellationRequested)
                 {
@@ -59,14 +60,22 @@ namespace Rezgar.Crawler
                     break;
                 }
 
-                var queueItem = crawlingQueue.DequeueAsync();
+                var queueItem = await crawlingQueue.DequeueAsync();
                 if (queueItem == null) // Both Local and Proxy queues are depleted
                 {
+                    // NOTE: If Queue is depleted, we must wait until all running tasks are executed, because they might add new items to queue
                     await Task.WhenAll(tasks.ToArray());
-                    if (crawlingQueue.LocalQueue.Count == 0) // NOTE: If Queue is depleted, we must wait until all running tasks are executed, because they might add new items to queue
-                        break;
-                    else
+
+                    // wait for all queue proxies to complete fetching items
+                    // TODO: consider locking (multithreading scenario)
+                    var queueProxiesPending = crawlingQueue.QueueProxies.Where(queueProxy => queueProxy.IsPending()).ToArray();
+                    if (queueProxiesPending.Length > 0)
                         continue;
+
+                    if (crawlingQueue.LocalQueue.Count > 0) 
+                        continue;
+
+                    break;
                 }
 
                 if (!await _crawlingEventInterceptorManager.OnAfterDequeueAsync(queueItem))
@@ -77,9 +86,9 @@ namespace Rezgar.Crawler
 
                 tasksLock.EnterWriteLock();
 
-                queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.Processing);
+                queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.Downloading);
 
-                tasks.Add(TaskExtensions.Unwrap(
+                tasks.Add(System.Threading.Tasks.TaskExtensions.Unwrap(
                     CrawlAsync(queueItem.ResourceLink)
                         .ContinueWith(async task =>
                         {
@@ -89,29 +98,54 @@ namespace Rezgar.Crawler
 
                             try
                             {
+                                queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.Downloaded);
+
                                 if (task.Status == TaskStatus.RanToCompletion)
                                 {
                                     var resourceContentUnits = task.Result;
                                     var httpResultUnit = resourceContentUnits.OfType<HttpResultUnit>().Single();
 
+                                    queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.Processing);
+
+                                    var resourceContentUnitsProcessingCountdown = new AsyncCountdownEvent(resourceContentUnits.Count);
+                                    
                                     // Process resource content units extracted from Response
                                     foreach (var resourceContentUnit in resourceContentUnits)
                                     {
                                         switch (resourceContentUnit)
                                         {
                                             case ExtractedLinksUnit extractedLinksUnit:
-                                                foreach (var extractedLink in extractedLinksUnit.ExtractedLinks)
+                                                if (extractedLinksUnit.ExtractedLinks.Count > 0)
                                                 {
-                                                    var crawlingQueueItem = new CrawlingQueueItem(extractedLink);
+                                                    var linksProcessingCountdown = new AsyncCountdownEvent(extractedLinksUnit.ExtractedLinks.Count);
 
-                                                    // Do not enqueue item if prevented by any interceptor
-                                                    if (!await _crawlingEventInterceptorManager.OnBeforeEnqueueAsync(crawlingQueueItem))
+                                                    foreach (var extractedLink in extractedLinksUnit.ExtractedLinks)
                                                     {
-                                                        continue;
+                                                        var crawlingQueueItem = new CrawlingQueueItem(extractedLink);
+
+                                                        // Do not enqueue item if prevented by any interceptor
+                                                        if (!await _crawlingEventInterceptorManager.OnBeforeEnqueueAsync(crawlingQueueItem))
+                                                        {
+                                                            continue;
+                                                        }
+
+                                                        crawlingQueueItem.ProcessingCompleted += () =>
+                                                            linksProcessingCountdown.AddCount(1)
+                                                        ;
+                                                        crawlingQueue.Enqueue(crawlingQueueItem);
                                                     }
 
-                                                    crawlingQueue.EnqueueAsync(crawlingQueueItem);
+                                                    // Wait while all links are processed before releasing the content units semaphore and set Status = Processed for parent
+                                                    linksProcessingCountdown.WaitAsync()
+                                                        .ContinueWith(linksProcessingTask =>
+                                                            resourceContentUnitsProcessingCountdown.AddCount(1)
+                                                        );
                                                 }
+                                                else
+                                                    resourceContentUnitsProcessingCountdown.AddCount(1);
+
+                                                // Set Processed status when all extracted links are processed
+
                                                 break;
 
                                             case ExtractedDataUnit extractedDataUnit:
@@ -131,12 +165,13 @@ namespace Rezgar.Crawler
 
                                                     //crawlingQueue.EnqueueAsync(queueItem);
                                                 }
+                                                resourceContentUnitsProcessingCountdown.Signal();
                                                 break;
 
                                             case DownloadedFilesUnit downloadedFileUnit:
                                                 // If download file is a result of redirection,
                                                 // we must either explicitly declare that we're expecting a file, or throw a processing exception
-
+                                                
                                                 var fileLink = queueItem.ResourceLink as FileLink;
                                                 if (fileLink == null)
                                                 {
@@ -158,6 +193,8 @@ namespace Rezgar.Crawler
 
                                                     //crawlingQueue.EnqueueAsync(queueItem);
                                                 }
+
+                                                resourceContentUnitsProcessingCountdown.Signal();
                                                 break;
 
                                             case HttpResultUnit httpResultUnitStub:
@@ -168,26 +205,35 @@ namespace Rezgar.Crawler
                                                     case HttpStatusCode.GatewayTimeout:
                                                     case HttpStatusCode.RequestTimeout:
                                                         queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.NotLinked);
-                                                        crawlingQueue.EnqueueAsync(queueItem); // Trying to recrawl item if it failed for some intermitent reason
+                                                        crawlingQueue.Enqueue(queueItem); // Trying to recrawl item if it failed for some intermitent reason
                                                         break;
                                                     default:
-                                                        queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.ProcessingCompleted);
+                                                        // We need to invoke ProcessingCompleted only after Data and Links extracted are really processed.
+                                                        //queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.ProcessingCompleted);
                                                         break;
                                                 }
+                                                resourceContentUnitsProcessingCountdown.Signal();
                                                 break;
 
                                             default:
                                                 throw new NotSupportedException();
                                         }
                                     }
+
+                                    // Do not actually wait for related resources processing completion.
+                                    // Those might be extracted links or files. No need to hold queue resources while linked units are downloaded
+                                    // Set Processed status after all content units were registered and interceptors triggered
+                                    await resourceContentUnitsProcessingCountdown.WaitAsync()
+                                        .ContinueWith(resourceContentUnitsProcessingTask => 
+                                            queueItem.ChangeStatus(CrawlingQueueItem.CrawlingStatuses.Processed)
+                                        );
                                 }
                                 else
                                     Trace.TraceError("CrawlAsync: Failed for queue item {0} with exception [{1}]", queueItem.ResourceLink, task.Exception);
                             }
                             finally
                             {
-
-                                semaphore.Release();
+                                queueItemsProcessingSemaphore.Release();
                             }
                         })
                     )
@@ -207,7 +253,7 @@ namespace Rezgar.Crawler
 
             resourceLink.SetUpWebRequest(webRequest);
 
-            return await TaskExtensions.Unwrap(
+            return await System.Threading.Tasks.TaskExtensions.Unwrap(
                     webRequest.GetResponseAsync()
                     .ContinueWith(async webResponseTask =>
                     {

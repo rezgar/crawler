@@ -229,7 +229,9 @@ namespace Rezgar.Crawler.Configuration
                                         });
                                         break;
                                     case "headers":
-                                        result.Headers = ReadHttpHeadersSection(childReader).ToDictionary(pred => pred.Key, pred => pred.Value.ToString());
+                                        result.Headers = ReadHttpHeadersSection(childReader)
+                                                            .Where(pred => !pred.Value.RequiresResolve)
+                                                            .ToDictionary(pred => pred.Key, pred => pred.Value.FormatString);
                                         break;
                                 }
                             });

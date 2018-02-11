@@ -1,4 +1,5 @@
-﻿using Rezgar.Crawler.Download;
+﻿using Nito.AsyncEx;
+using Rezgar.Crawler.Download;
 using Rezgar.Crawler.Download.ResourceLinks;
 using System;
 using System.Collections.Generic;
@@ -12,8 +13,6 @@ namespace Rezgar.Crawler.Queue.QueueProxies
 {
     public class CollectionCrawlingQueueProxy : QueueProxy
     {
-        private ICollection<CollectionCrawlingQueueProxy> _dependencies;
-
         // NOTE: Can not be changed, added/removed externally.
         // That means that there will never be new items added and the status flow is static
 
@@ -22,9 +21,8 @@ namespace Rezgar.Crawler.Queue.QueueProxies
         protected IEnumerable<CrawlingQueueItem> QueueItemsAvailable => QueueItems.Where(pred => pred.Status == CrawlingQueueItem.CrawlingStatuses.NotLinked);
         
         public CollectionCrawlingQueueProxy(InitializationLink initializationLink, ICollection<ResourceLink> resourceLinks, params CollectionCrawlingQueueProxy[] dependencies)
+            : base(dependencies)
         {
-            _dependencies = dependencies;
-
             if (initializationLink != null)
                 InitializationLink = initializationLink;
 
@@ -35,28 +33,7 @@ namespace Rezgar.Crawler.Queue.QueueProxies
         public override async Task<IList<CrawlingQueueItem>> FetchAsync(int portionSize, CancellationTokenSource cts)
         {
             ChangeStatus(Statuses.Fetching);
-
-            // Wait for all dependencies to be fully crawled, then continue
-            var notDepletedDependencies = _dependencies?.Where(pred => pred.Status != Statuses.Depleted).ToArray();
-            if (notDepletedDependencies != null && notDepletedDependencies.Length > 0)
-            {
-                // No dependencies, that still have items, not fully processed
-                var semaphore = new SemaphoreSlim(0, notDepletedDependencies.Length);
-
-                foreach (var dependency in notDepletedDependencies)
-                {
-                    dependency.StatusChanged += status =>
-                    {
-                        if (status == Statuses.Depleted)
-                        {
-                            semaphore.Release();
-                        }
-                    };
-                }
-
-                await semaphore.WaitAsync();
-            }
-
+            
             // On first fetch returns only InitializationQueueItem.
             if (InitializationLink != null)
             {
@@ -76,17 +53,18 @@ namespace Rezgar.Crawler.Queue.QueueProxies
 
             if (queueItems.Length > 0)
             {
-                var queueItemsSemaphore = new SemaphoreSlim(0, queueItems.Length);
+                var queueItemsCountdown = new AsyncCountdownEvent(queueItems.Length);
 
                 foreach (var queueItem in queueItems)
                 {
                     queueItem.ProcessingCompleted += () =>
                     {
-                        queueItemsSemaphore.Release();
+                        queueItemsCountdown.Signal();
                     };
                 }
 
-                queueItemsSemaphore.WaitAsync()
+                queueItemsCountdown
+                    .WaitAsync()
                     .ContinueWith(allQueuedItemsCompletedTask =>
                     {
                         ChangeStatus(Statuses.Depleted);

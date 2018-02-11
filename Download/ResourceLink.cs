@@ -220,7 +220,6 @@ namespace Rezgar.Crawler.Download
 
         #endregion
 
-
         public virtual void Resolve(DependencyDataSource dependencyDataSource)
         {
             Url = dependencyDataSource.Resolve(UrlWithDependencies);

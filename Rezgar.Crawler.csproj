@@ -23,6 +23,7 @@
     <PackageReference Include="Microsoft.Data.Edm" Version="5.8.3" />
     <PackageReference Include="Microsoft.Data.OData" Version="5.8.3" />
     <PackageReference Include="Microsoft.Data.Services.Client" Version="5.8.3" />
+    <PackageReference Include="Nito.AsyncEx" Version="4.0.1" />
     <PackageReference Include="WindowsAzure.Storage" Version="8.6.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="SmartFormat.Net" Version="2.1.0.2" />
