@@ -15,7 +15,6 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
     public class MultiplyPostProcessor : ParsePostProcessor<decimal?>
     {
         public readonly StringWithDependencies MultiplierString;
-        public readonly decimal MultiplierDecimal;
 
         public MultiplyPostProcessor(StringWithDependencies multiplier)
             : base(new DecimalParser())
@@ -26,7 +25,7 @@ namespace Rezgar.Crawler.DataExtraction.PostProcessors
         public override IEnumerable<string> Execute(decimal? value, DependencyDataSource dependencyDataSource)
         {
             var multiplierDecimal = decimal.Parse(dependencyDataSource.Resolve(MultiplierString), CultureInfo.InvariantCulture);
-            yield return ToString(value * MultiplierDecimal);
+            yield return ToString(value * multiplierDecimal);
         }
 
         public override IEnumerable<StringWithDependencies> GetStringsWithDependencies()
