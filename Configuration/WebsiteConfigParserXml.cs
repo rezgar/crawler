@@ -291,18 +291,12 @@ namespace Rezgar.Crawler.Configuration
 
         private static InitializationLink ReadInitializationDocumentSection(XmlReader reader, WebsiteConfig config, WebsiteJob job)
         {
-            var result = new InitializationLink(
-                reader.GetAttribute("url"),
-                reader.GetAttribute<string>("method", System.Net.WebRequestMethods.Http.Get),
-                null,
-                null,
-                true,
-                true,
-                config,
-                job
-            );
+            var url = reader.GetAttribute("url");
+            var httpMethod = reader.GetAttribute<string>("method", System.Net.WebRequestMethods.Http.Get);
 
-            result.ExtractionItemsOverride = new Dictionary<string, ExtractionItem>();
+            IDictionary<string, string> parameters = null;
+            IDictionary<string, string> headers = null;
+            IDictionary<string, ExtractionItem> extractionItemsOverride = new Dictionary<string, ExtractionItem>();
 
             while (!(reader.Name == "initialization" && reader.NodeType == XmlNodeType.EndElement) && reader.Read())
             {
@@ -311,22 +305,48 @@ namespace Rezgar.Crawler.Configuration
 
                 switch (reader.Name)
                 {
-                    case "frame":
-                        var extractionFrame = ReadExtractionFrameSection(reader, config);
-                        result.ExtractionItemsOverride.Add(extractionFrame.Name, extractionFrame);
+                    case "parameters":
+                        parameters = ReadExtractionLinkParametersSection(reader).ToDictionary(pred => pred.Key, pred => pred.Value.FormatString);
                         break;
-                    case "link":
-                        var extractionLink = ReadExtractionLinkSection(reader, config);
-                        result.ExtractionItemsOverride.Add(extractionLink.Name, extractionLink);
+                    case "headers":
+                        headers = ReadHttpHeadersSection(reader).ToDictionary(pred => pred.Key, pred => pred.Value.FormatString);
                         break;
-                    case "item":
-                        var extractionItem = ReadExtractionItemSection(reader, config);
-                        result.ExtractionItemsOverride.Add(extractionItem.Name, extractionItem);
+                    case "extraction":
+                        extractionItemsOverride = ReadExtractionItemsSection(reader, config);
                         break;
-                    default:
-                        throw new ArgumentException("Unrecognized element", reader.Name);
                 }
+                //switch (reader.Name)
+                //{
+                //    case "frame":
+                //        var extractionFrame = ReadExtractionFrameSection(reader, config);
+                //        result.ExtractionItemsOverride.Add(extractionFrame.Name, extractionFrame);
+                //        break;
+                //    case "link":
+                //        var extractionLink = ReadExtractionLinkSection(reader, config);
+                //        result.ExtractionItemsOverride.Add(extractionLink.Name, extractionLink);
+                //        break;
+                //    case "item":
+                //        var extractionItem = ReadExtractionItemSection(reader, config);
+                //        result.ExtractionItemsOverride.Add(extractionItem.Name, extractionItem);
+                //        break;
+                //    default:
+                //        throw new ArgumentException("Unrecognized element", reader.Name);
+                //}
             }
+
+
+            var result = new InitializationLink(
+                url,
+                httpMethod,
+                parameters,
+                headers,
+                true,
+                true,
+                config,
+                job
+            );
+
+            result.ExtractionItemsOverride = extractionItemsOverride;
 
             return result;
         }
